@@ -1,0 +1,75 @@
+{
+  "id": "96027304-58f2-802d-8008-6836e902c320",
+  "name": "chevron-down",
+  "type": "group",
+  "x": -4890,
+  "y": -1333.75,
+  "width": 50,
+  "height": 50,
+  "rotation": 0,
+  "selrect": {
+    "x": -4890,
+    "y": -1333.75,
+    "width": 50,
+    "height": 50,
+    "x1": -4890,
+    "y1": -1333.75,
+    "x2": -4840,
+    "y2": -1283.75
+  },
+  "points": [
+    {
+      "x": -4890,
+      "y": -1333.75
+    },
+    {
+      "x": -4840,
+      "y": -1333.75
+    },
+    {
+      "x": -4840,
+      "y": -1283.75
+    },
+    {
+      "x": -4890,
+      "y": -1283.75
+    }
+  ],
+  "transform": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "transformInverse": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "parentId": "48f95fdc-fe3c-807d-8008-66ec4946dbbe",
+  "frameId": "48f95fdc-fe3c-807d-8008-66ec4946dbbe",
+  "flipX": false,
+  "flipY": false,
+  "svgAttrs": {
+    "width": "24",
+    "className": "feather feather-chevron-down",
+    "height": "24"
+  },
+  "proportionLock": false,
+  "pageId": "2be68822-842f-8175-8008-66ead26a9ee0",
+  "constraintsV": "top",
+  "constraintsH": "left",
+  "svgDefs": {},
+  "strokes": [],
+  "proportion": 1,
+  "fills": [],
+  "shapes": [
+    "96027304-58f2-802d-8008-6836e902c321",
+    "96027304-58f2-802d-8008-6836e9033007"
+  ]
+}

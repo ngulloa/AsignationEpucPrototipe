@@ -1,0 +1,150 @@
+{
+  "id": "96027304-58f2-802d-8008-682d6399dbb9",
+  "name": "Escuela de Psicolog\u00eda",
+  "type": "text",
+  "x": -2775,
+  "y": -1901.5,
+  "width": 236,
+  "height": 32,
+  "rotation": 0,
+  "selrect": {
+    "x": -2775,
+    "y": -1901.5,
+    "width": 236,
+    "height": 32,
+    "x1": -2775,
+    "y1": -1901.5,
+    "x2": -2539,
+    "y2": -1869.5
+  },
+  "points": [
+    {
+      "x": -2775,
+      "y": -1901.5
+    },
+    {
+      "x": -2539,
+      "y": -1901.5
+    },
+    {
+      "x": -2539,
+      "y": -1869.5
+    },
+    {
+      "x": -2775,
+      "y": -1869.5
+    }
+  ],
+  "transform": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "transformInverse": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "parentId": "2a943bc5-6d56-80a4-8008-684f0af761f2",
+  "frameId": "48f95fdc-fe3c-807d-8008-6721dc27f957",
+  "flipX": null,
+  "flipY": null,
+  "growType": "fixed",
+  "content": {
+    "type": "root",
+    "children": [
+      {
+        "type": "paragraph-set",
+        "children": [
+          {
+            "lineHeight": "1.2",
+            "fontStyle": "normal",
+            "children": [
+              {
+                "lineHeight": "1.2",
+                "fontStyle": "normal",
+                "textTransform": "none",
+                "textAlign": "left",
+                "fontId": "gfont-roboto",
+                "fontSize": "24",
+                "fontWeight": "600",
+                "textDirection": "ltr",
+                "fontVariantId": "600",
+                "textDecoration": "none",
+                "letterSpacing": "0",
+                "fills": [
+                  {
+                    "fillColor": "#ffffff",
+                    "fillOpacity": 1
+                  }
+                ],
+                "fontFamily": "Roboto",
+                "text": "Escuela de Psicolog\u00eda"
+              }
+            ],
+            "textTransform": "none",
+            "textAlign": "left",
+            "fontId": "gfont-roboto",
+            "key": "dpumj",
+            "fontSize": "24",
+            "fontWeight": "600",
+            "textDirection": "ltr",
+            "type": "paragraph",
+            "fontVariantId": "600",
+            "textDecoration": "none",
+            "letterSpacing": "0",
+            "fills": [
+              {
+                "fillColor": "#ffffff",
+                "fillOpacity": 1
+              }
+            ],
+            "fontFamily": "Roboto"
+          }
+        ]
+      }
+    ]
+  },
+  "hideInViewer": false,
+  "pageId": "2be68822-842f-8175-8008-66ead26a9ee0",
+  "constraintsV": "scale",
+  "constraintsH": "scale",
+  "appliedTokens": {
+    "fill": "01UCBase.uc.neutral.blanco"
+  },
+  "positionData": [
+    {
+      "x": -2775,
+      "y": -1873.5,
+      "width": 235.03125,
+      "height": 28,
+      "x1": 0,
+      "y1": 0,
+      "x2": 235.03125,
+      "y2": 28,
+      "fontStyle": "normal",
+      "textTransform": "none",
+      "fontSize": "24px",
+      "fontWeight": "600",
+      "textDecoration": "none",
+      "letterSpacing": "normal",
+      "fills": [
+        {
+          "fillColor": "#ffffff",
+          "fillOpacity": 1
+        }
+      ],
+      "direction": "ltr",
+      "fontFamily": "Roboto",
+      "text": "Escuela de Psicolog\u00eda"
+    }
+  ],
+  "strokes": [],
+  "fills": []
+}

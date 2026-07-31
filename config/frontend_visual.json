@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "colors": {
+    "brand_yellow": "#FEC60D",
+    "brand_dark_blue": "#03122E",
+    "brand_light_blue": "#0176DE",
+    "brand_blue": "#173F8A",
+    "brand_dark_yellow": "#E3AE00",
+    "semantic_warning": "#E3AE00",
+    "semantic_information": "#0176DE",
+    "semantic_success": "#00AA00",
+    "semantic_error": "#F24F4F",
+    "neutral_gray_500": "#9C9C9C",
+    "neutral_gray_700": "#707070",
+    "neutral_black": "#000000",
+    "neutral_gray_50": "#F6F6F6",
+    "neutral_gray_100": "#F0F0F0",
+    "neutral_white": "#FFFFFF",
+    "neutral_gray_300": "#C6C6C6",
+    "neutral_gray_200": "#EAEAEA"
+  },
+  "typography": {
+    "preferred_family": "Roboto",
+    "fallback_families": [
+      "Noto Sans",
+      "Sans Serif"
+    ],
+    "sizes": {
+      "caption": 12,
+      "body": 16,
+      "button": 18,
+      "subtitle": 24,
+      "title": 36
+    },
+    "weights": {
+      "regular": 400,
+      "medium": 500,
+      "bold": 700
+    }
+  },
+  "screens": {
+    "login": {
+      "width": 768,
+      "height": 768
+    },
+    "register": {
+      "width": 768,
+      "height": 768
+    },
+    "menu": {
+      "width": 768,
+      "height": 768
+    },
+    "academic_list": {
+      "width": 1080,
+      "height": 768
+    },
+    "academic_form": {
+      "width": 1080,
+      "height": 768
+    },
+    "approval": {
+      "width": 1080,
+      "height": 768
+    },
+    "error_notification": {
+      "width": 1080,
+      "height": 768
+    },
+    "update": {
+      "width": 1080,
+      "height": 768
+    },
+    "alerts": {
+      "width": 1080,
+      "height": 768
+    }
+  },
+  "validation_viewport": {
+    "width": 768,
+    "height": 768
+  },
+  "margins": {
+    "page": 48,
+    "section": 32,
+    "control": 16
+  },
+  "spacing": {
+    "extra_small": 4,
+    "small": 8,
+    "medium": 16,
+    "large": 24,
+    "extra_large": 32
+  },
+  "radii": {
+    "small": 4,
+    "medium": 8,
+    "large": 16
+  },
+  "borders": {
+    "control": {
+      "width": 1,
+      "color_token": "neutral_gray_300"
+    },
+    "focus": {
+      "width": 2,
+      "color_token": "brand_light_blue"
+    }
+  },
+  "shadows": {
+    "surface": {
+      "offset_x": 0,
+      "offset_y": 2,
+      "blur": 8,
+      "color": "#000000",
+      "opacity": 0.16
+    }
+  }
+}

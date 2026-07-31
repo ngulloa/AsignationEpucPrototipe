@@ -1,0 +1,148 @@
+{
+  "id": "48f95fdc-fe3c-807d-8008-6706aba8d960",
+  "name": "acad\u00e9micos",
+  "type": "text",
+  "x": -1828.4743326488706,
+  "y": -1200.44,
+  "width": 200,
+  "height": 44.00000000000023,
+  "rotation": 0,
+  "selrect": {
+    "x": -1828.4743326488706,
+    "y": -1200.44,
+    "width": 200,
+    "height": 44.00000000000023,
+    "x1": -1828.4743326488706,
+    "y1": -1200.44,
+    "x2": -1628.4743326488706,
+    "y2": -1156.4399999999998
+  },
+  "points": [
+    {
+      "x": -1828.4743326488706,
+      "y": -1200.44
+    },
+    {
+      "x": -1628.4743326488706,
+      "y": -1200.44
+    },
+    {
+      "x": -1628.4743326488706,
+      "y": -1156.4399999999998
+    },
+    {
+      "x": -1828.4743326488706,
+      "y": -1156.4399999999998
+    }
+  ],
+  "transform": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "transformInverse": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "parentId": "48f95fdc-fe3c-807d-8008-6706aba8d955",
+  "frameId": "48f95fdc-fe3c-807d-8008-6706aba8d955",
+  "flipX": null,
+  "flipY": null,
+  "growType": "auto-width",
+  "content": {
+    "type": "root",
+    "children": [
+      {
+        "type": "paragraph-set",
+        "children": [
+          {
+            "lineHeight": "1.2",
+            "fontStyle": "normal",
+            "children": [
+              {
+                "lineHeight": "1.2",
+                "fontStyle": "normal",
+                "textTransform": "none",
+                "textAlign": "left",
+                "fontId": "gfont-roboto",
+                "fontSize": "36",
+                "fontWeight": "400",
+                "textDirection": "ltr",
+                "fontVariantId": "regular",
+                "textDecoration": "none",
+                "letterSpacing": "0",
+                "fills": [
+                  {
+                    "fillColor": "#0176de",
+                    "fillOpacity": 1
+                  }
+                ],
+                "fontFamily": "Roboto",
+                "text": "Acad\u00e9micos"
+              }
+            ],
+            "typographyRefId": null,
+            "textTransform": "none",
+            "textAlign": "left",
+            "fontId": "gfont-roboto",
+            "key": "bsafm",
+            "fontSize": "36",
+            "fontWeight": "400",
+            "typographyRefFile": null,
+            "textDirection": "ltr",
+            "type": "paragraph",
+            "fontVariantId": "regular",
+            "textDecoration": "none",
+            "letterSpacing": "0",
+            "fills": [
+              {
+                "fillColor": "#0176de",
+                "fillOpacity": 1
+              }
+            ],
+            "fontFamily": "Roboto"
+          }
+        ]
+      }
+    ]
+  },
+  "hideInViewer": false,
+  "appliedTokens": {
+    "fill": "01UCBase.uc.brand.celeste"
+  },
+  "positionData": [
+    {
+      "x": -1828.4743326488706,
+      "y": -1158.44,
+      "width": 199.59375,
+      "height": 42,
+      "x1": 0,
+      "y1": 0,
+      "x2": 199.59375,
+      "y2": 42,
+      "fontStyle": "normal",
+      "textTransform": "none",
+      "fontSize": "36px",
+      "fontWeight": "400",
+      "textDecoration": "none",
+      "letterSpacing": "normal",
+      "fills": [
+        {
+          "fillColor": "#0176de",
+          "fillOpacity": 1
+        }
+      ],
+      "direction": "ltr",
+      "fontFamily": "Roboto",
+      "text": "Acad\u00e9micos"
+    }
+  ],
+  "pageId": "2be68822-842f-8175-8008-66ead26a9ee0"
+}

@@ -1,0 +1,77 @@
+{
+  "id": "96027304-58f2-802d-8008-6831549e3647",
+  "name": "search",
+  "type": "group",
+  "x": -3462,
+  "y": -1729,
+  "width": 32,
+  "height": 32,
+  "rotation": 0,
+  "selrect": {
+    "x": -3462,
+    "y": -1729,
+    "width": 32,
+    "height": 32,
+    "x1": -3462,
+    "y1": -1729,
+    "x2": -3430,
+    "y2": -1697
+  },
+  "points": [
+    {
+      "x": -3462,
+      "y": -1729
+    },
+    {
+      "x": -3430,
+      "y": -1729
+    },
+    {
+      "x": -3430,
+      "y": -1697
+    },
+    {
+      "x": -3462,
+      "y": -1697
+    }
+  ],
+  "transform": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "transformInverse": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "parentId": "48f95fdc-fe3c-807d-8008-6721dc27f957",
+  "frameId": "48f95fdc-fe3c-807d-8008-6721dc27f957",
+  "flipX": false,
+  "flipY": false,
+  "svgAttrs": {
+    "width": "24",
+    "className": "feather feather-search",
+    "height": "24"
+  },
+  "proportionLock": false,
+  "pageId": "2be68822-842f-8175-8008-66ead26a9ee0",
+  "constraintsV": "top",
+  "constraintsH": "left",
+  "svgDefs": {},
+  "strokes": [],
+  "proportion": 1,
+  "shadow": [],
+  "fills": [],
+  "shapes": [
+    "96027304-58f2-802d-8008-683154a0c050",
+    "96027304-58f2-802d-8008-683154a14823",
+    "96027304-58f2-802d-8008-683154a1c9e8"
+  ]
+}

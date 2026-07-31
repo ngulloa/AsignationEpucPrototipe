@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "notifications": [
+    {
+      "notification_id": "1b158f7c-b691-49ef-9756-a7f166673345",
+      "created_at": "2026-07-31T19:06:28.614004+00:00",
+      "username": "nicolasulloa",
+      "screen": "Académicos",
+      "code": "SAVE_ERROR",
+      "message": "Error al guardar.",
+      "description": "Su usuario debe estar aprobado para acceder a datos compartidos."
+    }
+  ]
+}

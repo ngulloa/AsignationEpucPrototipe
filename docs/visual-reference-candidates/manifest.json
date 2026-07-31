@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "review_status": "pending_human_review",
+  "deterministic_environment": "Qt offscreen; datos FakeFrontendController",
+  "comparison": {
+    "penpot": "Comparación visual realizada con 01_Wireframes.pdf y los tres PNG exportados en design.prototipe; se conserva jerarquía, color, tipografía, superficies y distribución de 1280x900.",
+    "existing_references": "No se encontró un conjunto previo de referencias finales aprobadas.",
+    "decision": "Candidatas; no aprobadas hasta revisión humana."
+  },
+  "captures": [
+    {
+      "file": "login.png",
+      "screen": "login",
+      "state": "vacío",
+      "resolution": "768x768",
+      "sha256": "c83ce53274a2b7574069c62c29cb662c7b73f052cdcc8dc6c7ff54b7a1b8d1ea"
+    },
+    {
+      "file": "register.png",
+      "screen": "register",
+      "state": "vacío",
+      "resolution": "768x768",
+      "sha256": "b8929111a037441871c02d94183e47e3136dd8380b6d056d450725248afe178d"
+    },
+    {
+      "file": "menu.png",
+      "screen": "menu",
+      "state": "sesión propietaria",
+      "resolution": "768x768",
+      "sha256": "d3b933630b084d8e349b38f235da4ad8851b2cabd06f02139bbdf3270430cf09"
+    },
+    {
+      "file": "academic_list_personal.png",
+      "screen": "academic_list",
+      "state": "tabla personal con registros",
+      "resolution": "1080x768",
+      "sha256": "65928cdd2cc6d855698ae9f2758979e37f594714b03bfa597600fd1a2ac351df"
+    },
+    {
+      "file": "academic_list_personal_820x640.png",
+      "screen": "academic_list",
+      "state": "tabla personal responsiva",
+      "resolution": "820x640",
+      "sha256": "4f01342a87f859eb28a291d92a213e80e99fc46067e2adf68e5f149fbbe05aba"
+    },
+    {
+      "file": "academic_list_personal_1280x900.png",
+      "screen": "academic_list",
+      "state": "tabla personal ampliada",
+      "resolution": "1280x900",
+      "sha256": "4392ed96348f788d7ee4f787a0d16de2af0e281861eacd8ca935170913787234"
+    },
+    {
+      "file": "academic_list_shared.png",
+      "screen": "academic_list",
+      "state": "selector de tablas compartidas",
+      "resolution": "1080x768",
+      "sha256": "28a244ac446029a5a18fd1c6f25973463c388558e5fe8f3b5fbe9a92c59b12a9"
+    },
+    {
+      "file": "academic_list_shared_records.png",
+      "screen": "academic_list",
+      "state": "tabla compartida seleccionada",
+      "resolution": "1080x768",
+      "sha256": "ef09ffa1d87a8b02bb25fcb09b9ff85cf5976997d2e5b2d42e21783e0fd6305c"
+    },
+    {
+      "file": "academic_form_shared_edit.png",
+      "screen": "academic_form",
+      "state": "edición de registro compartido",
+      "resolution": "1080x768",
+      "sha256": "629da644da6c18cd562f775fe87d5d454defddc56c6483b5917afd0aba7585a3"
+    },
+    {
+      "file": "academic_form.png",
+      "screen": "academic_form",
+      "state": "alta vacía",
+      "resolution": "1080x768",
+      "sha256": "4c1053f05ac12007e9c53cc9e123bbbd7c7954faabe19034eb0c95a7583b7a69"
+    },
+    {
+      "file": "approval.png",
+      "screen": "approval",
+      "state": "solicitudes pendientes",
+      "resolution": "1080x768",
+      "sha256": "d29f81083c50b4404146c77a7b96d313dc6adc73ee738c07bb37f114f3d3b8a1"
+    },
+    {
+      "file": "error_notification.png",
+      "screen": "error_notification",
+      "state": "clasificación predeterminada sin texto libre",
+      "resolution": "1080x768",
+      "sha256": "30070d01f68171e3b99ff538b52b41a1842f03c49cd9efdc5379456f5443ed4a"
+    },
+    {
+      "file": "update.png",
+      "screen": "update",
+      "state": "resumen estable",
+      "resolution": "1080x768",
+      "sha256": "f8ec23b3f9dc09c1082522965a2c27926f3fa8f2056baa4c48490663396f3ed9"
+    },
+    {
+      "file": "alerts.png",
+      "screen": "alerts",
+      "state": "detalle estructurado disponible",
+      "resolution": "1080x768",
+      "sha256": "b80cec49576a279a332ee5427569d221cf8d54d552980be2de6e9c0e6e5460a5"
+    },
+    {
+      "file": "academic_form_rut_registered.png",
+      "screen": "academic_form",
+      "state": "error de RUT duplicado",
+      "resolution": "1080x768",
+      "sha256": "4690da146e408892b18b1650026f8dd6ba826d6ad4b77b037f580c9400046ef7"
+    },
+    {
+      "file": "update_error.png",
+      "screen": "update",
+      "state": "error controlado",
+      "resolution": "1080x768",
+      "sha256": "09d9df53e9480f8ddadefec271a4ade75c670d3a61324b6fb5e7cd8442b0bc02"
+    },
+    {
+      "file": "academic_list_shared_access_denied.png",
+      "screen": "academic_list",
+      "state": "edición compartida denegada",
+      "resolution": "1080x768",
+      "sha256": "fe31c3b995c7aa97945a591aa34dcd6b386b23e63e20fbc20b5b4609a09a94fe"
+    }
+  ]
+}

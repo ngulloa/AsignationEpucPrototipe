@@ -1,0 +1,147 @@
+{
+  "id": "96027304-58f2-802d-8008-683368d36b14",
+  "name": "sub-encabezado",
+  "type": "text",
+  "x": -5463.999999999998,
+  "y": -1829.5,
+  "width": 381,
+  "height": 42,
+  "rotation": 0,
+  "selrect": {
+    "x": -5463.999999999998,
+    "y": -1829.5,
+    "width": 381,
+    "height": 42,
+    "x1": -5463.999999999998,
+    "y1": -1829.5,
+    "x2": -5082.999999999998,
+    "y2": -1787.5
+  },
+  "points": [
+    {
+      "x": -5463.999999999998,
+      "y": -1829.5
+    },
+    {
+      "x": -5082.999999999998,
+      "y": -1829.5
+    },
+    {
+      "x": -5082.999999999998,
+      "y": -1787.5
+    },
+    {
+      "x": -5463.999999999998,
+      "y": -1787.5
+    }
+  ],
+  "transform": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "transformInverse": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "parentId": "48f95fdc-fe3c-807d-8008-66ec4946dbbe",
+  "frameId": "48f95fdc-fe3c-807d-8008-66ec4946dbbe",
+  "flipX": null,
+  "flipY": null,
+  "growType": "fixed",
+  "content": {
+    "type": "root",
+    "children": [
+      {
+        "type": "paragraph-set",
+        "children": [
+          {
+            "lineHeight": "1.2",
+            "fontStyle": "normal",
+            "children": [
+              {
+                "lineHeight": "1.2",
+                "fontStyle": "normal",
+                "textTransform": "uppercase",
+                "textAlign": "left",
+                "fontId": "gfont-roboto",
+                "fontSize": "36",
+                "fontWeight": "600",
+                "textDirection": "ltr",
+                "fontVariantId": "600",
+                "textDecoration": "none",
+                "letterSpacing": "0",
+                "fills": [
+                  {
+                    "fillColor": "#000000",
+                    "fillOpacity": 1
+                  }
+                ],
+                "fontFamily": "Roboto",
+                "text": "Agregar acad\u00e9mico"
+              }
+            ],
+            "textTransform": "uppercase",
+            "textAlign": "left",
+            "fontId": "gfont-roboto",
+            "key": "dmqqb",
+            "fontSize": "36",
+            "fontWeight": "600",
+            "textDirection": "ltr",
+            "type": "paragraph",
+            "fontVariantId": "600",
+            "textDecoration": "none",
+            "letterSpacing": "0",
+            "fills": [
+              {
+                "fillColor": "#000000",
+                "fillOpacity": 1
+              }
+            ],
+            "fontFamily": "Roboto"
+          }
+        ]
+      }
+    ]
+  },
+  "hideInViewer": false,
+  "pageId": "2be68822-842f-8175-8008-66ead26a9ee0",
+  "constraintsV": "top",
+  "constraintsH": "left",
+  "positionData": [
+    {
+      "x": -5463.999999999998,
+      "y": -1787.5,
+      "width": 377.125,
+      "height": 42,
+      "x1": 0,
+      "y1": 0,
+      "x2": 377.125,
+      "y2": 42,
+      "fontStyle": "normal",
+      "textTransform": "uppercase",
+      "fontSize": "36px",
+      "fontWeight": "600",
+      "textDecoration": "none",
+      "letterSpacing": "normal",
+      "fills": [
+        {
+          "fillColor": "#000000",
+          "fillOpacity": 1
+        }
+      ],
+      "direction": "ltr",
+      "fontFamily": "Roboto",
+      "text": "Agregar acad\u00e9mico"
+    }
+  ],
+  "strokes": [],
+  "fills": []
+}

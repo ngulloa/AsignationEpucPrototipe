@@ -1,0 +1,147 @@
+{
+  "id": "48f95fdc-fe3c-807d-8008-6721dc28305b",
+  "name": "anadir_academico",
+  "type": "text",
+  "x": -2759.0390766459295,
+  "y": -1724.1984602294058,
+  "width": 158,
+  "height": 29,
+  "rotation": 0,
+  "selrect": {
+    "x": -2759.0390766459295,
+    "y": -1724.1984602294058,
+    "width": 158,
+    "height": 29,
+    "x1": -2759.0390766459295,
+    "y1": -1724.1984602294058,
+    "x2": -2601.0390766459295,
+    "y2": -1695.1984602294058
+  },
+  "points": [
+    {
+      "x": -2759.0390766459295,
+      "y": -1724.1984602294058
+    },
+    {
+      "x": -2601.0390766459295,
+      "y": -1724.1984602294058
+    },
+    {
+      "x": -2601.0390766459295,
+      "y": -1695.1984602294058
+    },
+    {
+      "x": -2759.0390766459295,
+      "y": -1695.1984602294058
+    }
+  ],
+  "transform": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "transformInverse": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "parentId": "48f95fdc-fe3c-807d-8008-6721dc27f95c",
+  "frameId": "48f95fdc-fe3c-807d-8008-6721dc27f957",
+  "flipX": null,
+  "flipY": null,
+  "growType": "auto-width",
+  "content": {
+    "type": "root",
+    "children": [
+      {
+        "type": "paragraph-set",
+        "children": [
+          {
+            "lineHeight": "1.2",
+            "fontStyle": "normal",
+            "children": [
+              {
+                "lineHeight": "1.2",
+                "fontStyle": "normal",
+                "textTransform": "none",
+                "textAlign": "left",
+                "fontId": "gfont-roboto",
+                "fontSize": "24",
+                "fontWeight": "400",
+                "textDirection": "ltr",
+                "fontVariantId": "regular",
+                "textDecoration": "none",
+                "letterSpacing": "0",
+                "fills": [
+                  {
+                    "fillColor": "#0176de",
+                    "fillOpacity": 1
+                  }
+                ],
+                "fontFamily": "Roboto",
+                "text": "Volver al men\u00fa"
+              }
+            ],
+            "textTransform": "none",
+            "textAlign": "left",
+            "fontId": "gfont-roboto",
+            "key": "bsafm",
+            "fontSize": "24",
+            "fontWeight": "400",
+            "textDirection": "ltr",
+            "type": "paragraph",
+            "fontVariantId": "regular",
+            "textDecoration": "none",
+            "letterSpacing": "0",
+            "fills": [
+              {
+                "fillColor": "#0176de",
+                "fillOpacity": 1
+              }
+            ],
+            "fontFamily": "Roboto"
+          }
+        ]
+      }
+    ]
+  },
+  "hideInViewer": false,
+  "appliedTokens": {
+    "fill": "01UCBase.uc.brand.celeste"
+  },
+  "positionData": [
+    {
+      "x": -2759.0390766459295,
+      "y": -1696.1984602294058,
+      "width": 157.65625,
+      "height": 28,
+      "x1": 0,
+      "y1": 0,
+      "x2": 157.65625,
+      "y2": 28,
+      "fontStyle": "normal",
+      "textTransform": "none",
+      "fontSize": "24px",
+      "fontWeight": "400",
+      "textDecoration": "none",
+      "letterSpacing": "normal",
+      "fills": [
+        {
+          "fillColor": "#0176de",
+          "fillOpacity": 1
+        }
+      ],
+      "direction": "ltr",
+      "fontFamily": "Roboto",
+      "text": "Volver al men\u00fa"
+    }
+  ],
+  "strokes": [],
+  "pageId": "2be68822-842f-8175-8008-66ead26a9ee0"
+}

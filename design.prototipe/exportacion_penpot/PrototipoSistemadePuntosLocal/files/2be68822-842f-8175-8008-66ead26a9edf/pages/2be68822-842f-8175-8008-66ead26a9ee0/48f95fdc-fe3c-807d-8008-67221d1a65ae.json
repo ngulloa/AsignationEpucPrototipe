@@ -1,0 +1,148 @@
+{
+  "id": "48f95fdc-fe3c-807d-8008-67221d1a65ae",
+  "name": "Nombre",
+  "type": "text",
+  "x": -5439,
+  "y": -1680.5,
+  "width": 129,
+  "height": 44,
+  "rotation": 0,
+  "selrect": {
+    "x": -5439,
+    "y": -1680.5,
+    "width": 129,
+    "height": 44,
+    "x1": -5439,
+    "y1": -1680.5,
+    "x2": -5310,
+    "y2": -1636.5
+  },
+  "points": [
+    {
+      "x": -5439,
+      "y": -1680.5
+    },
+    {
+      "x": -5310,
+      "y": -1680.5
+    },
+    {
+      "x": -5310,
+      "y": -1636.5
+    },
+    {
+      "x": -5439,
+      "y": -1636.5
+    }
+  ],
+  "transform": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "transformInverse": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "parentId": "48f95fdc-fe3c-807d-8008-66ec4946dbbe",
+  "frameId": "48f95fdc-fe3c-807d-8008-66ec4946dbbe",
+  "flipX": null,
+  "flipY": null,
+  "growType": "auto-width",
+  "content": {
+    "type": "root",
+    "children": [
+      {
+        "type": "paragraph-set",
+        "children": [
+          {
+            "lineHeight": "1.2",
+            "fontStyle": "normal",
+            "children": [
+              {
+                "lineHeight": "1.2",
+                "fontStyle": "normal",
+                "textTransform": "none",
+                "textAlign": "left",
+                "fontId": "gfont-roboto",
+                "fontSize": "36",
+                "fontWeight": "400",
+                "textDirection": "ltr",
+                "fontVariantId": "regular",
+                "textDecoration": "none",
+                "letterSpacing": "0",
+                "fills": [
+                  {
+                    "fillColor": "#173f8a",
+                    "fillOpacity": 1
+                  }
+                ],
+                "fontFamily": "Roboto",
+                "text": "Nombre"
+              }
+            ],
+            "typographyRefId": null,
+            "textTransform": "none",
+            "textAlign": "left",
+            "fontId": "gfont-roboto",
+            "key": "41mrs",
+            "fontSize": "36",
+            "fontWeight": "400",
+            "typographyRefFile": null,
+            "textDirection": "ltr",
+            "type": "paragraph",
+            "fontVariantId": "regular",
+            "textDecoration": "none",
+            "letterSpacing": "0",
+            "fills": [
+              {
+                "fillColor": "#173f8a",
+                "fillOpacity": 1
+              }
+            ],
+            "fontFamily": "Roboto"
+          }
+        ]
+      }
+    ]
+  },
+  "hideInViewer": false,
+  "appliedTokens": {
+    "fill": "01UCBase.uc.brand.azul"
+  },
+  "positionData": [
+    {
+      "x": -5439,
+      "y": -1638.5,
+      "width": 128.953125,
+      "height": 42,
+      "x1": 0,
+      "y1": 0,
+      "x2": 128.953125,
+      "y2": 42,
+      "fontStyle": "normal",
+      "textTransform": "none",
+      "fontSize": "36px",
+      "fontWeight": "400",
+      "textDecoration": "none",
+      "letterSpacing": "normal",
+      "fills": [
+        {
+          "fillColor": "#173f8a",
+          "fillOpacity": 1
+        }
+      ],
+      "direction": "ltr",
+      "fontFamily": "Roboto",
+      "text": "Nombre"
+    }
+  ],
+  "pageId": "2be68822-842f-8175-8008-66ead26a9ee0"
+}

@@ -1,0 +1,149 @@
+{
+  "id": "48f95fdc-fe3c-807d-8008-672561e101e1",
+  "name": "Cancelar",
+  "type": "text",
+  "x": -5083.5,
+  "y": -1066.5,
+  "width": 142,
+  "height": 44,
+  "rotation": 0,
+  "selrect": {
+    "x": -5083.5,
+    "y": -1066.5,
+    "width": 142,
+    "height": 44,
+    "x1": -5083.5,
+    "y1": -1066.5,
+    "x2": -4941.5,
+    "y2": -1022.5
+  },
+  "points": [
+    {
+      "x": -5083.5,
+      "y": -1066.5
+    },
+    {
+      "x": -4941.5,
+      "y": -1066.5
+    },
+    {
+      "x": -4941.5,
+      "y": -1022.5
+    },
+    {
+      "x": -5083.5,
+      "y": -1022.5
+    }
+  ],
+  "transform": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "transformInverse": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "parentId": "48f95fdc-fe3c-807d-8008-672561e101df",
+  "frameId": "48f95fdc-fe3c-807d-8008-66ec4946dbbe",
+  "flipX": null,
+  "flipY": null,
+  "growType": "auto-width",
+  "content": {
+    "type": "root",
+    "children": [
+      {
+        "type": "paragraph-set",
+        "children": [
+          {
+            "lineHeight": "1.2",
+            "fontStyle": "normal",
+            "children": [
+              {
+                "lineHeight": "1.2",
+                "fontStyle": "normal",
+                "textTransform": "none",
+                "textAlign": "left",
+                "fontId": "gfont-roboto",
+                "fontSize": "36",
+                "fontWeight": "400",
+                "textDirection": "ltr",
+                "fontVariantId": "regular",
+                "textDecoration": "none",
+                "letterSpacing": "0",
+                "fills": [
+                  {
+                    "fillColor": "#0176de",
+                    "fillOpacity": 1
+                  }
+                ],
+                "fontFamily": "Roboto",
+                "text": "Cancelar"
+              }
+            ],
+            "textTransform": "none",
+            "textAlign": "left",
+            "fontId": "gfont-roboto",
+            "key": "bsafm",
+            "fontSize": "36",
+            "fontWeight": "400",
+            "textDirection": "ltr",
+            "type": "paragraph",
+            "fontVariantId": "regular",
+            "textDecoration": "none",
+            "letterSpacing": "0",
+            "fills": [
+              {
+                "fillColor": "#0176de",
+                "fillOpacity": 1
+              }
+            ],
+            "fontFamily": "Roboto"
+          }
+        ]
+      }
+    ]
+  },
+  "hideInViewer": false,
+  "pageId": "2be68822-842f-8175-8008-66ead26a9ee0",
+  "constraintsV": "scale",
+  "constraintsH": "scale",
+  "appliedTokens": {
+    "fill": "01UCBase.uc.brand.celeste"
+  },
+  "positionData": [
+    {
+      "x": -5083.5,
+      "y": -1024.5,
+      "width": 141.375,
+      "height": 42,
+      "x1": 0,
+      "y1": 0,
+      "x2": 141.375,
+      "y2": 42,
+      "fontStyle": "normal",
+      "textTransform": "none",
+      "fontSize": "36px",
+      "fontWeight": "400",
+      "textDecoration": "none",
+      "letterSpacing": "normal",
+      "fills": [
+        {
+          "fillColor": "#0176de",
+          "fillOpacity": 1
+        }
+      ],
+      "direction": "ltr",
+      "fontFamily": "Roboto",
+      "text": "Cancelar"
+    }
+  ],
+  "strokes": []
+}

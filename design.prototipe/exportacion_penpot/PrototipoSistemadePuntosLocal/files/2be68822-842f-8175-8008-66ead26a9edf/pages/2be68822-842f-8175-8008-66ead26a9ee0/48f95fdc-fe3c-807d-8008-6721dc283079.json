@@ -1,0 +1,145 @@
+{
+  "id": "48f95fdc-fe3c-807d-8008-6721dc283079",
+  "name": "Ordinaria",
+  "type": "text",
+  "x": -3273,
+  "y": -1488.5,
+  "width": 73,
+  "height": 22,
+  "rotation": 0,
+  "selrect": {
+    "x": -3273,
+    "y": -1488.5,
+    "width": 73,
+    "height": 22,
+    "x1": -3273,
+    "y1": -1488.5,
+    "x2": -3200,
+    "y2": -1466.5
+  },
+  "points": [
+    {
+      "x": -3273,
+      "y": -1488.5
+    },
+    {
+      "x": -3200,
+      "y": -1488.5
+    },
+    {
+      "x": -3200,
+      "y": -1466.5
+    },
+    {
+      "x": -3273,
+      "y": -1466.5
+    }
+  ],
+  "transform": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "transformInverse": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "parentId": "48f95fdc-fe3c-807d-8008-6721dc283054",
+  "frameId": "48f95fdc-fe3c-807d-8008-6721dc27f957",
+  "flipX": null,
+  "flipY": null,
+  "growType": "auto-width",
+  "content": {
+    "type": "root",
+    "children": [
+      {
+        "type": "paragraph-set",
+        "children": [
+          {
+            "lineHeight": "1.2",
+            "fontStyle": "normal",
+            "children": [
+              {
+                "lineHeight": "1.2",
+                "fontStyle": "normal",
+                "textTransform": "none",
+                "textAlign": "left",
+                "fontId": "gfont-roboto",
+                "fontSize": "18",
+                "fontWeight": "400",
+                "textDirection": "ltr",
+                "fontVariantId": "regular",
+                "textDecoration": "none",
+                "letterSpacing": "0",
+                "fills": [
+                  {
+                    "fillColor": "#000000",
+                    "fillOpacity": 1
+                  }
+                ],
+                "fontFamily": "Roboto",
+                "text": "Ordinaria"
+              }
+            ],
+            "textTransform": "none",
+            "textAlign": "left",
+            "fontId": "gfont-roboto",
+            "key": "4apnp",
+            "fontSize": "18",
+            "fontWeight": "400",
+            "textDirection": "ltr",
+            "type": "paragraph",
+            "fontVariantId": "regular",
+            "textDecoration": "none",
+            "letterSpacing": "0",
+            "fills": [
+              {
+                "fillColor": "#000000",
+                "fillOpacity": 1
+              }
+            ],
+            "fontFamily": "Roboto"
+          }
+        ]
+      }
+    ]
+  },
+  "hideInViewer": false,
+  "positionData": [
+    {
+      "x": -3273,
+      "y": -1467.5,
+      "width": 72.84375,
+      "height": 21,
+      "x1": 0,
+      "y1": 0,
+      "x2": 72.84375,
+      "y2": 21,
+      "fontStyle": "normal",
+      "textTransform": "none",
+      "fontSize": "18px",
+      "fontWeight": "400",
+      "textDecoration": "none",
+      "letterSpacing": "normal",
+      "fills": [
+        {
+          "fillColor": "#000000",
+          "fillOpacity": 1
+        }
+      ],
+      "direction": "ltr",
+      "fontFamily": "Roboto",
+      "text": "Ordinaria"
+    }
+  ],
+  "strokes": [],
+  "fills": [],
+  "pageId": "2be68822-842f-8175-8008-66ead26a9ee0"
+}

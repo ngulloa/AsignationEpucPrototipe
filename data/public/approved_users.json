@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "approved_users": [
+    {
+      "request_id": "e422f52c-47f1-4736-9311-bedaef2179c4",
+      "username": "nicolasulloa",
+      "status": "pending",
+      "requested_at": "2026-07-31T19:05:01.329883+00:00",
+      "approved_at": null,
+      "approved_by": null
+    }
+  ]
+}

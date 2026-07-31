@@ -1,0 +1,78 @@
+{
+  "id": "48f95fdc-fe3c-807d-8008-6721dc27f95a",
+  "name": "btn_anadir_academico",
+  "type": "group",
+  "x": -3041,
+  "y": -1735.1984602294058,
+  "width": 230,
+  "height": 51,
+  "rotation": 0,
+  "selrect": {
+    "x": -3041,
+    "y": -1735.1984602294058,
+    "width": 230,
+    "height": 51,
+    "x1": -3041,
+    "y1": -1735.1984602294058,
+    "x2": -2811,
+    "y2": -1684.1984602294058
+  },
+  "points": [
+    {
+      "x": -3041,
+      "y": -1735.1984602294058
+    },
+    {
+      "x": -2811,
+      "y": -1735.1984602294058
+    },
+    {
+      "x": -2811,
+      "y": -1684.1984602294058
+    },
+    {
+      "x": -3041,
+      "y": -1684.1984602294058
+    }
+  ],
+  "transform": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "transformInverse": {
+    "a": 1.0,
+    "b": 0.0,
+    "c": 0.0,
+    "d": 1.0,
+    "e": 0.0,
+    "f": 0.0
+  },
+  "parentId": "48f95fdc-fe3c-807d-8008-6721dc27f957",
+  "frameId": "48f95fdc-fe3c-807d-8008-6721dc27f957",
+  "flipX": false,
+  "flipY": false,
+  "index": 6,
+  "fixedScroll": false,
+  "proportionLock": false,
+  "pageId": "2be68822-842f-8175-8008-66ead26a9ee0",
+  "interactions": [
+    {
+      "eventType": "click",
+      "actionType": "navigate",
+      "destination": "48f95fdc-fe3c-807d-8008-66ec4946dbbe",
+      "positionRelativeTo": "48f95fdc-fe3c-807d-8008-6721dc27f95a",
+      "preserveScroll": false
+    }
+  ],
+  "strokes": [],
+  "proportion": 1,
+  "fills": [],
+  "shapes": [
+    "48f95fdc-fe3c-807d-8008-6721dc283056",
+    "48f95fdc-fe3c-807d-8008-6721dc283057"
+  ]
+}

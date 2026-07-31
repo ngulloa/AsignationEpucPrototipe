@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=80,<82"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "epuc-academic-assignment"
+version = "0.2.0"
+description = "Prototipo local para asignación de carga académica"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "PySide6>=6.10,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4,<10",
+    "pytest-qt>=4.5,<5",
+    "ruff>=0.14,<1",
+]
+
+[tool.setuptools]
+packages = [
+    "backend",
+    "frontend",
+    "frontend.views",
+    "frontend.widgets",
+    "persistence",
+]
+py-modules = ["main"]
+include-package-data = true
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+extend-exclude = [
+    ".venv",
+    "design.prototipe",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
