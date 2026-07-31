@@ -8,6 +8,14 @@
       "requested_at": "2026-07-31T19:05:01.329883+00:00",
       "approved_at": null,
       "approved_by": null
+    },
+    {
+      "request_id": "4e10d363-cbcf-4f0f-b6e6-f87da1008004",
+      "username": "nico",
+      "status": "pending",
+      "requested_at": "2026-07-31T19:36:50.207594+00:00",
+      "approved_at": null,
+      "approved_by": null
     }
   ]
 }
