@@ -5,9 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Final
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
-    QApplication,
     QFormLayout,
     QHBoxLayout,
     QLineEdit,
@@ -17,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from frontend.async_worker import AsyncOperation
 from frontend.contracts import UiResult, UpdateRequest
 from frontend.navigation import FrontendRoute
 from frontend.settings import ApplicationSettings
@@ -49,6 +49,11 @@ class UpdateView(QWidget):
         self.settings = settings
         self._run_update = run_update
         self._latest_error = settings.texts.messages["update_error"]
+        self._operation = AsyncOperation(self)
+        self._operation.progress.connect(self._show_progress)
+        self._operation.succeeded.connect(self._complete)
+        self._operation.failed.connect(self._fail)
+        self._operation.finished.connect(lambda: self._set_busy(False))
         self.setObjectName("updateView")
         self._build_ui(style_manager)
 
@@ -148,20 +153,35 @@ class UpdateView(QWidget):
         if not self.update_button.isEnabled():
             return
         self._set_busy(True)
-        QApplication.processEvents()
-        try:
-            result = self._run_update(
-                UpdateRequest(self.username_input.text(), self.update_name_input.text())
-            )
-        finally:
+        request = UpdateRequest(
+            self.username_input.text(),
+            self.update_name_input.text(),
+        )
+        if not self._operation.start(lambda: self._run_update(request)):
             self._set_busy(False)
+
+    @Slot(str)
+    def _show_progress(self, message: str) -> None:
+        self.result_label.present(message, success=True)
+
+    @Slot(object)
+    def _complete(self, result: object) -> None:
+        if not isinstance(result, UiResult):
+            self._fail("La respuesta de actualización es inválida.")
+            return
         self.result_label.present(result.message, success=result.success)
         if not result.success:
             self._latest_error = result.message
 
+    @Slot(str)
+    def _fail(self, message: str) -> None:
+        self.result_label.present(message, success=False)
+        self._latest_error = message
+
     def _set_busy(self, busy: bool) -> None:
         self.update_name_input.setEnabled(not busy)
         self.back_button.setEnabled(not busy)
+        self.header.logout_button.setEnabled(not busy)
         self.update_button.setText(
             "Actualizando…" if busy else self.settings.texts.button_labels["run_update"]
         )
@@ -169,3 +189,6 @@ class UpdateView(QWidget):
             self.update_button.setEnabled(False)
         else:
             self._refresh_state()
+
+    def close_worker(self) -> bool:
+        return self._operation.shutdown()

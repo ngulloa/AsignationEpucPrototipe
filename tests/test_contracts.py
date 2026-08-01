@@ -9,16 +9,16 @@ from backend.contracts import AcademicFormData, AcademicRecord, SubmissionResult
 
 def test_academic_form_data_construction() -> None:
     data = AcademicFormData(
-        name="Ana Cifuentes",
-        rut="12345678-9",
+        name="Persona Sintética Uno",
+        rut="12345678-5",
         plant="Ordinaria",
         profile="Mixto",
         weekly_hours=40,
         status="Activo",
     )
 
-    assert data.name == "Ana Cifuentes"
-    assert data.rut == "12345678-9"
+    assert data.name == "Persona Sintética Uno"
+    assert data.rut == "12345678-5"
     assert data.plant == "Ordinaria"
     assert data.profile == "Mixto"
     assert data.status == "Activo"
@@ -26,8 +26,8 @@ def test_academic_form_data_construction() -> None:
 
 def test_weekly_hours_remains_an_integer() -> None:
     data = AcademicFormData(
-        name="Ana Cifuentes",
-        rut="12345678-9",
+        name="Persona Sintética Uno",
+        rut="12345678-5",
         plant="Ordinaria",
         profile="Mixto",
         weekly_hours=40,

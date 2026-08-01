@@ -11,13 +11,25 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
-from backend.contracts import AcademicFormData, AcademicRecord, SubmissionResult
+from backend.academic_catalog import AcademicCatalogs, CatalogOption
+from backend.academic_service import (
+    INCOMPATIBLE_PLANT_PROFILE_MESSAGE,
+    INVALID_PLANT_MESSAGE,
+    INVALID_PROFILE_MESSAGE,
+)
+from backend.contracts import (
+    AcademicErrorCode,
+    AcademicFormData,
+    AcademicRecord,
+    SubmissionResult,
+)
 from frontend.settings import ApplicationSettings
 from frontend.style_manager import StyleManager
 from frontend.widgets import (
@@ -28,8 +40,13 @@ from frontend.widgets import (
     add_page_footer,
 )
 
-SubmissionCallback = Callable[[AcademicFormData], SubmissionResult]
+SubmissionCallback = Callable[..., SubmissionResult]
 UpdateCallback = Callable[[str, AcademicFormData], SubmissionResult]
+
+HISTORICAL_INCOMPATIBILITY_MESSAGE = (
+    "La combinación histórica de planta y perfil no es compatible. "
+    "Seleccione una combinación válida antes de guardar."
+)
 
 
 class AcademicFormView(QWidget):
@@ -42,18 +59,21 @@ class AcademicFormView(QWidget):
         self,
         settings: ApplicationSettings,
         style_manager: StyleManager,
+        catalogs: AcademicCatalogs,
         submit_callback: SubmissionCallback,
         update_callback: UpdateCallback | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.settings = settings
+        self.catalogs = catalogs
         self._submit_callback = submit_callback
         self._default_update_callback = update_callback
         self._active_update_callback = update_callback
         self.field_error_labels: dict[str, QLabel] = {}
         self._latest_error = settings.texts.messages["save_error"]
         self._editing_id: str | None = None
+        self._historical_warning_active = False
         self.setObjectName("academicFormView")
         self._build_ui(style_manager)
 
@@ -92,11 +112,17 @@ class AcademicFormView(QWidget):
         control_height = spacing["large"] + spacing["medium"]
         self.name_input = self._line_edit(control_height)
         self.rut_input = self._line_edit(control_height)
-        self.plant_combo = self._catalog_combo("plant", placeholder=True)
-        self.profile_combo = self._catalog_combo("profile", placeholder=True)
+        self.plant_combo = self._catalog_combo(self.catalogs.plants, placeholder=True)
+        self.profile_combo = self._catalog_combo((), placeholder=True)
+        self.profile_combo.setEnabled(False)
         self.weekly_hours_input = QSpinBox()
         self.weekly_hours_input.setRange(-(2**31), 2**31 - 1)
-        self.status_combo = self._catalog_combo("status", placeholder=False)
+        self.status_combo = self._catalog_combo(
+            self.catalogs.statuses,
+            placeholder=False,
+        )
+        self.plant_combo.currentIndexChanged.connect(self._reload_profiles)
+        self.profile_combo.currentIndexChanged.connect(self._clear_historical_warning)
         for control in (
             self.plant_combo,
             self.profile_combo,
@@ -171,13 +197,57 @@ class AcademicFormView(QWidget):
         layout.addWidget(error, row + 1, column + 1)
         self.field_error_labels[name] = error
 
-    def _catalog_combo(self, name: str, *, placeholder: bool) -> QComboBox:
+    def _catalog_combo(
+        self,
+        options: tuple[CatalogOption, ...],
+        *,
+        placeholder: bool,
+    ) -> QComboBox:
         combo = QComboBox()
+        self._populate_catalog_combo(combo, options, placeholder=placeholder)
+        return combo
+
+    def _populate_catalog_combo(
+        self,
+        combo: QComboBox,
+        options: tuple[CatalogOption, ...],
+        *,
+        placeholder: bool,
+    ) -> None:
+        combo.clear()
         if placeholder:
             combo.addItem(self.settings.texts.messages["select_placeholder"], "")
-        for value in self.settings.texts.catalogs[name].values:
-            combo.addItem(value, value)
-        return combo
+        for option in options:
+            combo.addItem(option.label, option.key)
+
+    def _reload_profiles(self, _index: int | None = None) -> None:
+        previous_profile = str(self.profile_combo.currentData() or "")
+        plant = str(self.plant_combo.currentData() or "")
+        options = self.catalogs.profiles_for_plant(plant)
+        self.profile_combo.blockSignals(True)
+        self.profile_combo.clear()
+        self.profile_combo.addItem(
+            self.settings.texts.messages["select_placeholder"],
+            "",
+        )
+        for option in options:
+            self.profile_combo.addItem(option.label, option.key)
+        profile_index = self.profile_combo.findData(previous_profile)
+        self.profile_combo.setCurrentIndex(max(profile_index, 0))
+        self.profile_combo.setEnabled(bool(plant))
+        self.profile_combo.blockSignals(False)
+        if self._historical_warning_active:
+            self._clear_historical_warning()
+
+    def _clear_historical_warning(self, _index: int | None = None) -> None:
+        if not self._historical_warning_active:
+            return
+        self._historical_warning_active = False
+        profile_error = self.field_error_labels["profile"]
+        profile_error.clear()
+        profile_error.hide()
+        if self.result_label.text() == HISTORICAL_INCOMPATIBILITY_MESSAGE:
+            self.result_label.clear_result()
 
     def set_session(self, username: str) -> None:
         self.header.username_label.setText(username)
@@ -186,13 +256,24 @@ class AcademicFormView(QWidget):
     def prepare_new(self) -> None:
         self._editing_id = None
         self._active_update_callback = self._default_update_callback
+        self.save_button.setText(self.settings.texts.button_labels["save"])
         self.page_title.label.setText(
             self.settings.texts.screen_titles["academic_form"].upper()
+        )
+        self._populate_catalog_combo(
+            self.plant_combo,
+            self.catalogs.plants,
+            placeholder=True,
+        )
+        self._populate_catalog_combo(
+            self.status_combo,
+            self.catalogs.statuses,
+            placeholder=False,
         )
         self.name_input.clear()
         self.rut_input.clear()
         self.plant_combo.setCurrentIndex(0)
-        self.profile_combo.setCurrentIndex(0)
+        self._reload_profiles()
         self.weekly_hours_input.setValue(0)
         self.status_combo.setCurrentIndex(0)
         self._clear_result()
@@ -202,17 +283,61 @@ class AcademicFormView(QWidget):
         record: AcademicRecord,
         *,
         update_callback: UpdateCallback | None = None,
+        publication: bool = False,
     ) -> None:
         self._editing_id = record.academic_id
         self._active_update_callback = update_callback or self._default_update_callback
+        self.save_button.setText(
+            "Publicar" if publication else self.settings.texts.button_labels["save"]
+        )
+        self._clear_result()
+        self._populate_catalog_combo(
+            self.plant_combo,
+            self.catalogs.plants,
+            placeholder=True,
+        )
+        self._populate_catalog_combo(
+            self.status_combo,
+            self.catalogs.statuses,
+            placeholder=False,
+        )
         self.page_title.label.setText("EDITAR ACADÉMICO")
         self.name_input.setText(record.name)
         self.rut_input.setText(record.rut)
-        self.plant_combo.setCurrentIndex(self.plant_combo.findData(record.plant))
-        self.profile_combo.setCurrentIndex(self.profile_combo.findData(record.profile))
+        plant = self.catalogs.normalize_plant_for_read(record.plant)
+        profile = self.catalogs.normalize_profile_for_read(record.profile)
+        plant_index = self.plant_combo.findData(plant)
+        if plant_index < 0 and plant:
+            self.plant_combo.addItem(f"{record.plant} (histórico)", plant)
+            plant_index = self.plant_combo.count() - 1
+        self.plant_combo.setCurrentIndex(max(plant_index, 0))
+        profile_index = self.profile_combo.findData(profile)
+        incompatible = bool(plant and profile) and not self.catalogs.is_compatible(
+            plant,
+            profile,
+        )
+        if profile_index < 0 and profile:
+            suffix = " (histórico incompatible)" if incompatible else " (histórico)"
+            self.profile_combo.addItem(f"{record.profile}{suffix}", profile)
+            profile_index = self.profile_combo.count() - 1
+            self.profile_combo.setEnabled(True)
+        self.profile_combo.setCurrentIndex(max(profile_index, 0))
         self.weekly_hours_input.setValue(record.weekly_hours)
-        self.status_combo.setCurrentIndex(self.status_combo.findData(record.status))
-        self._clear_result()
+        status = self.catalogs.normalize_status_for_read(record.status)
+        status_index = self.status_combo.findData(status)
+        if status_index < 0 and status:
+            self.status_combo.addItem(f"{record.status} (histórico)", status)
+            status_index = self.status_combo.count() - 1
+        self.status_combo.setCurrentIndex(max(status_index, 0))
+        if incompatible:
+            self._historical_warning_active = True
+            self.result_label.present(
+                HISTORICAL_INCOMPATIBILITY_MESSAGE,
+                success=False,
+            )
+            profile_error = self.field_error_labels["profile"]
+            profile_error.setText(INCOMPATIBLE_PLANT_PROFILE_MESSAGE)
+            profile_error.show()
 
     def form_data(self) -> AcademicFormData:
         return AcademicFormData(
@@ -227,11 +352,56 @@ class AcademicFormView(QWidget):
     def submit(self) -> None:
         self._clear_result()
         data = self.form_data()
+        selection_error = self._validate_profile_selection(data)
+        if selection_error is not None:
+            self._present_result(selection_error)
+            return
         result = (
             self._active_update_callback(self._editing_id, data)
             if self._editing_id is not None and self._active_update_callback is not None
             else self._submit_callback(data)
         )
+        if (
+            self._editing_id is None
+            and result.error_code is AcademicErrorCode.DUPLICATE_RUT
+            and result.duplicate_confirmation is not None
+        ):
+            self._present_result(result)
+            if not self._confirm_duplicate_overwrite(result.message):
+                return
+            result = self._submit_callback(data, result.duplicate_confirmation)
+        self._present_result(result)
+
+    def _validate_profile_selection(
+        self,
+        data: AcademicFormData,
+    ) -> SubmissionResult | None:
+        plant = self.catalogs.strict_plant_key(data.plant)
+        if plant is None:
+            return SubmissionResult(
+                False,
+                INVALID_PLANT_MESSAGE,
+                {"plant": INVALID_PLANT_MESSAGE},
+                error_code=AcademicErrorCode.INVALID_PLANT,
+            )
+        profile = self.catalogs.strict_profile_key(data.profile)
+        if profile is None:
+            return SubmissionResult(
+                False,
+                INVALID_PROFILE_MESSAGE,
+                {"profile": INVALID_PROFILE_MESSAGE},
+                error_code=AcademicErrorCode.INVALID_PROFILE,
+            )
+        if not self.catalogs.is_compatible(plant, profile):
+            return SubmissionResult(
+                False,
+                INCOMPATIBLE_PLANT_PROFILE_MESSAGE,
+                {"profile": INCOMPATIBLE_PLANT_PROFILE_MESSAGE},
+                error_code=AcademicErrorCode.INCOMPATIBLE_PLANT_PROFILE,
+            )
+        return None
+
+    def _present_result(self, result: SubmissionResult) -> None:
         self.result_label.present(result.message, success=result.success)
         unknown_errors: list[str] = []
         for field_name, message in result.field_errors.items():
@@ -248,7 +418,25 @@ class AcademicFormView(QWidget):
         else:
             self._latest_error = result.message
 
+    def _confirm_duplicate_overwrite(self, message: str) -> bool:
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle(self.settings.texts.screen_titles["academic_form"])
+        dialog.setIcon(QMessageBox.Icon.Warning)
+        dialog.setText(message)
+        cancel_button = dialog.addButton(
+            self.settings.texts.button_labels["cancel"],
+            QMessageBox.ButtonRole.RejectRole,
+        )
+        overwrite_button = dialog.addButton(
+            self.settings.texts.button_labels["overwrite"],
+            QMessageBox.ButtonRole.DestructiveRole,
+        )
+        dialog.setDefaultButton(cancel_button)
+        dialog.exec()
+        return dialog.clickedButton() is overwrite_button
+
     def _clear_result(self) -> None:
+        self._historical_warning_active = False
         self.result_label.clear_result()
         for label in self.field_error_labels.values():
             label.clear()

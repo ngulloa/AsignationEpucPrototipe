@@ -9,14 +9,21 @@ from json import JSONDecodeError
 from pathlib import Path
 from uuid import UUID
 
+from backend.system_contracts import validate_notification_description
 from persistence.atomic_json_repository import (
     AtomicJsonRepository,
     JsonDocument,
     atomic_write_json,
+    create_migration_backup,
+    restore_migration_backup,
 )
 from persistence.paths import DEFAULT_PATHS, ProjectPaths, normalize_username
 
-NOTIFICATION_SCHEMA_VERSION = 2
+NOTIFICATION_SCHEMA_VERSION = 3
+SEEN_SCHEMA_VERSION = 1
+HISTORICAL_DESCRIPTION = (
+    "Descripción histórica omitida durante la migración por privacidad."
+)
 NOTIFICATION_FIELDS = frozenset(
     {
         "notification_id",
@@ -25,6 +32,7 @@ NOTIFICATION_FIELDS = frozenset(
         "category",
         "error_code",
         "status",
+        "description",
     }
 )
 QUEUE_FIELDS = NOTIFICATION_FIELDS | {"delivered"}
@@ -74,6 +82,14 @@ class StoredErrorNotification:
     category: str
     error_code: str
     status: str
+    description: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "description",
+            validate_notification_description(self.description),
+        )
 
 
 def _validate_utc_timestamp(value: object) -> None:
@@ -108,6 +124,7 @@ def _validate_notification(item: object, *, allow_delivery: bool) -> None:
         raise ValueError("Categoría y código de error incompatibles.")
     if item["status"] not in ALLOWED_STATUSES:
         raise ValueError("Estado de notificación no autorizado.")
+    validate_notification_description(item["description"])
     if allow_delivery and type(item["delivered"]) is not bool:
         raise ValueError("Estado de entrega inválido.")
 
@@ -143,7 +160,7 @@ def _validate_queue_document(document: JsonDocument) -> None:
 
 
 def _validate_seen_document(document: JsonDocument) -> None:
-    if document.get("schema_version") != NOTIFICATION_SCHEMA_VERSION:
+    if document.get("schema_version") != SEEN_SCHEMA_VERSION:
         raise ValueError("Versión del estado visto no soportada.")
     if set(document) != {"schema_version", "seen_notification_ids"}:
         raise ValueError("Estado visto inválido.")
@@ -182,38 +199,103 @@ def _legacy_screen(value: object) -> str:
     return mapping.get(str(value), "error_notification")
 
 
-def migrate_legacy_notifications(path: Path) -> int:
-    """Replace a legacy register with safe records; callers control the target."""
+def _migrated_notification(item: object, *, legacy_v1: bool) -> JsonDocument:
+    if not isinstance(item, dict):
+        raise ValueError("El registro legado es inválido.")
+    code_key = "code" if legacy_v1 else "error_code"
+    code = str(item.get(code_key, "OTHER_ERROR"))
+    if code not in ALLOWED_ERROR_CODES:
+        code = "OTHER_ERROR"
+    source = (
+        _legacy_screen(item.get("screen"))
+        if legacy_v1
+        else str(item.get("source_screen", "error_notification"))
+    )
+    if source not in ALLOWED_SOURCE_SCREENS:
+        source = "error_notification"
+    status = str(item.get("status", "new"))
+    if status not in ALLOWED_STATUSES:
+        status = "new"
+    return {
+        "notification_id": str(item.get("notification_id", "")),
+        "created_at": str(item.get("created_at", "")),
+        "source_screen": source,
+        "category": ERROR_CATEGORY_BY_CODE[code],
+        "error_code": code,
+        "status": status,
+        "description": HISTORICAL_DESCRIPTION,
+    }
+
+
+def migrate_notifications(
+    path: Path,
+    *,
+    backup_directory: Path,
+) -> tuple[int, Path | None]:
+    """Migrate a v1/v2 shared register or private queue to validated v3."""
     document = _read_document_without_recovery(path)
-    if document is None or document.get("schema_version") != 1:
+    if document is None:
         raise ValueError("El archivo no contiene un registro legado válido.")
-    legacy = document.get("notifications")
+    version = document.get("schema_version")
+    if version == NOTIFICATION_SCHEMA_VERSION:
+        if "notifications" in document:
+            _validate_shared_document(document)
+        elif "queue" in document:
+            _validate_queue_document(document)
+        else:
+            raise ValueError("El registro de notificaciones es inválido.")
+        return 0, None
+    if version not in {1, 2}:
+        raise ValueError("El archivo no contiene un registro legado válido.")
+    collection_name = "notifications" if "notifications" in document else "queue"
+    legacy = document.get(collection_name)
     if not isinstance(legacy, list):
         raise ValueError("El registro legado es inválido.")
     migrated: list[JsonDocument] = []
     for item in legacy:
-        if not isinstance(item, dict):
-            raise ValueError("El registro legado es inválido.")
-        code = str(item.get("code", "OTHER_ERROR"))
-        if code not in ALLOWED_ERROR_CODES:
-            code = "OTHER_ERROR"
-        migrated.append(
-            {
-                "notification_id": str(item.get("notification_id", "")),
-                "created_at": str(item.get("created_at", "")),
-                "source_screen": _legacy_screen(item.get("screen")),
-                "category": ERROR_CATEGORY_BY_CODE[code],
-                "error_code": code,
-                "status": "new",
-            }
-        )
+        migrated_item = _migrated_notification(item, legacy_v1=version == 1)
+        if collection_name == "queue":
+            assert isinstance(item, dict)
+            migrated_item["delivered"] = bool(item.get("delivered", False))
+        migrated.append(migrated_item)
     result: JsonDocument = {
         "schema_version": NOTIFICATION_SCHEMA_VERSION,
-        "notifications": migrated,
+        collection_name: migrated,
     }
-    _validate_shared_document(result)
-    atomic_write_json(path, result)
-    return len(migrated)
+    validator = (
+        _validate_shared_document
+        if collection_name == "notifications"
+        else _validate_queue_document
+    )
+    validator(result)
+    backup = create_migration_backup(
+        path,
+        backup_directory,
+        filename=f"{path.name}.v{version}-to-v3.backup.json",
+    )
+    try:
+        atomic_write_json(path, result)
+        validated = _read_document_without_recovery(path)
+        if validated is None:
+            raise ValueError("No fue posible validar el resultado de la migración.")
+        validator(validated)
+    except Exception:
+        restore_migration_backup(backup, path)
+        raise
+    return len(migrated), backup
+
+
+def migrate_legacy_notifications(
+    path: Path,
+    *,
+    backup_directory: Path | None = None,
+) -> int:
+    """Compatibility wrapper for the backed v1/v2-to-v3 migration."""
+    migrated, _backup = migrate_notifications(
+        path,
+        backup_directory=backup_directory or path.parent / ".migration-backups",
+    )
+    return migrated
 
 
 class JsonErrorNotificationRepository:
@@ -233,19 +315,14 @@ class JsonErrorNotificationRepository:
 
     def _prepare_shared_schema(self) -> None:
         document = _read_document_without_recovery(self.paths.error_notifications_path)
-        if document is None or document.get("schema_version") != 1:
+        if (
+            document is None
+            or document.get("schema_version") == NOTIFICATION_SCHEMA_VERSION
+        ):
             return
-        notifications = document.get("notifications")
-        if isinstance(notifications, list) and notifications:
+        if document.get("schema_version") in {1, 2}:
             raise NotificationMigrationRequiredError(
                 self.paths.error_notifications_path
-            )
-        if notifications == []:
-            self._shared.write(
-                {
-                    "schema_version": NOTIFICATION_SCHEMA_VERSION,
-                    "notifications": [],
-                }
             )
 
     def enqueue_and_record(
@@ -372,7 +449,7 @@ class JsonErrorNotificationRepository:
             values.append(notification_id)
             store.write(
                 {
-                    "schema_version": NOTIFICATION_SCHEMA_VERSION,
+                    "schema_version": SEEN_SCHEMA_VERSION,
                     "seen_notification_ids": values,
                 }
             )
@@ -399,7 +476,7 @@ class JsonErrorNotificationRepository:
         return AtomicJsonRepository(
             self.paths.notifications_seen_path(username),
             empty_document={
-                "schema_version": NOTIFICATION_SCHEMA_VERSION,
+                "schema_version": SEEN_SCHEMA_VERSION,
                 "seen_notification_ids": [],
             },
             validator=_validate_seen_document,
@@ -421,4 +498,5 @@ class JsonErrorNotificationRepository:
             category=str(value["category"]),
             error_code=str(value["error_code"]),
             status=str(value["status"]),
+            description=str(value["description"]),
         )

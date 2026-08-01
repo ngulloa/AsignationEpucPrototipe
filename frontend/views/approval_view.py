@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -43,11 +44,13 @@ class ApprovalView(QWidget):
         settings: ApplicationSettings,
         style_manager: StyleManager,
         approve_user: ApprovalCallback,
+        withdraw_approval: ApprovalCallback,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.settings = settings
         self._approve_user = approve_user
+        self._withdraw_approval = withdraw_approval
         self.items: tuple[ApprovalItem, ...] = ()
         self._latest_error = "Error al administrar aprobaciones."
         self.setObjectName("approvalView")
@@ -111,6 +114,12 @@ class ApprovalView(QWidget):
         panel_layout.addWidget(self.result_label)
         buttons = QHBoxLayout()
         buttons.addStretch()
+        self.withdraw_button = QPushButton("Retirar solicitud")
+        self.withdraw_button.setObjectName("secondaryButton")
+        self.withdraw_button.setMinimumSize(180, 48)
+        self.withdraw_button.setEnabled(False)
+        self.withdraw_button.clicked.connect(self.withdraw_selected)
+        buttons.addWidget(self.withdraw_button)
         self.back_button = QPushButton(self.settings.texts.button_labels["back"])
         self.back_button.setObjectName("secondaryButton")
         self.back_button.setMinimumSize(180, 48)
@@ -152,9 +161,14 @@ class ApprovalView(QWidget):
     def _refresh_state(self) -> None:
         row = self.table.currentRow()
         is_pending = (
-            0 <= row < len(self.items) and self.items[row].status == "Pendiente"
+            0 <= row < len(self.items)
+            and self.items[row].status == "Pendiente"
+            and self.items[row].can_approve
         )
         self.approve_button.setEnabled(is_pending)
+        self.withdraw_button.setEnabled(
+            0 <= row < len(self.items) and self.items[row].can_withdraw
+        )
 
     def approve_selected(self) -> None:
         row = self.table.currentRow()
@@ -165,6 +179,29 @@ class ApprovalView(QWidget):
         if result.success:
             self.table.item(row, 3).setText("Aprobado")
             self.approve_button.setEnabled(False)
+        else:
+            self._latest_error = result.message
+
+    def withdraw_selected(self) -> None:
+        row = self.table.currentRow()
+        if not 0 <= row < len(self.items) or not self.items[row].can_withdraw:
+            return
+        confirmation = QMessageBox.question(
+            self,
+            "Retirar solicitud",
+            "¿Confirma que desea retirar esta solicitud pendiente?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirmation != QMessageBox.StandardButton.Yes:
+            return
+        result = self._withdraw_approval(self.items[row].request_id)
+        self.result_label.present(result.message, success=result.success)
+        if result.success:
+            remaining = list(self.items)
+            del remaining[row]
+            self.set_items(remaining)
+            self.result_label.present(result.message, success=True)
         else:
             self._latest_error = result.message
 

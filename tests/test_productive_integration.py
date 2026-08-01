@@ -13,7 +13,7 @@ from pytestqt.qtbot import QtBot
 from backend.approval import AuthorizationError
 from backend.authentication import AuthenticationError
 from backend.composition import build_application_service
-from backend.contracts import AcademicFormData, AcademicRecord
+from backend.contracts import AcademicErrorCode, AcademicFormData, AcademicRecord
 from backend.frontend_controller import PersistentFrontendController
 from backend.git_sync import GitRepositoryStateError, GitSyncService
 from backend.system_contracts import ErrorNotification, TablePublication, UpdateResult
@@ -75,6 +75,37 @@ def _academic(name: str) -> AcademicFormData:
     )
 
 
+def test_direct_application_service_rejects_invalid_academic_catalog_values(
+    tmp_path: Path,
+) -> None:
+    paths = ProjectPaths(tmp_path)
+    _configure_owner(paths)
+    application = build_application_service(
+        paths=paths,
+        git_service=RecordingGitService(),
+    )
+    application.register_user("owner", "1234")
+    invalid = AcademicFormData(
+        name="Persona sintética",
+        rut="12.345.678-5",
+        plant="Ordinaria",
+        profile="Mixto",
+        weekly_hours=20,
+        status="Estado inventado",
+    )
+
+    result = application.save_academic(invalid)
+
+    assert result.error_code is AcademicErrorCode.INVALID_STATUS
+    assert application.list_academics() == []
+    assert [option.key for option in application.academic_catalogs().statuses] == [
+        "Activo",
+        "Inactivo",
+        "Sabático",
+        "Terminado",
+    ]
+
+
 def test_productive_services_enforce_permissions_and_data_boundaries(
     tmp_path: Path,
 ) -> None:
@@ -123,6 +154,7 @@ def test_productive_services_enforce_permissions_and_data_boundaries(
             source_screen="academic_form",
             category="persistence",
             error_code="SAVE_ERROR",
+            description="No se guardó un registro ficticio.",
         )
     )
     with pytest.raises(AuthorizationError):
@@ -135,7 +167,7 @@ def test_productive_services_enforce_permissions_and_data_boundaries(
     assert alerts[0].source_screen == "academic_form"
     assert alerts[0].error_code == "SAVE_ERROR"
     assert not hasattr(alerts[0], "username")
-    assert not hasattr(alerts[0], "description")
+    assert alerts[0].description == "No se guardó un registro ficticio."
     with pytest.raises(AuthenticationError):
         application.authenticate("owner", "incorrecta")
     with pytest.raises(AuthorizationError):
@@ -163,6 +195,7 @@ def test_update_flushes_pending_notifications_and_publishes_shared_files(
             source_screen="update",
             category="synchronization",
             error_code="UPDATE_ERROR",
+            description="Falló una actualización ficticia.",
         )
     )
 
@@ -171,8 +204,15 @@ def test_update_flushes_pending_notifications_and_publishes_shared_files(
     queue_document["queue"][0]["delivered"] = False
     queue_path.write_text(json.dumps(queue_document), encoding="utf-8")
     paths.error_notifications_path.write_text(
-        json.dumps({"schema_version": 2, "notifications": []}),
+        json.dumps({"schema_version": 3, "notifications": []}),
         encoding="utf-8",
+    )
+
+    application.share_table(
+        TablePublication(
+            "Tabla preparada",
+            paths.personal_academics_path("owner"),
+        )
     )
 
     controller = PersistentFrontendController(application)
@@ -239,7 +279,6 @@ def test_shared_table_update_rechecks_backend_permission(tmp_path: Path) -> None
         application.update_shared_table(
             table.table_number or 1,
             [edited],
-            update_name="Intento no autorizado",
         )
 
     application.logout()
@@ -255,7 +294,6 @@ def test_shared_table_update_rechecks_backend_permission(tmp_path: Path) -> None
     updated = application.update_shared_table(
         table.table_number or 1,
         [edited],
-        update_name="Edición autorizada",
     )
 
     assert updated.table_number == table.table_number

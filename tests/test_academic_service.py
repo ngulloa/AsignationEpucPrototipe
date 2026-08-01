@@ -10,13 +10,16 @@ import pytest
 from backend.academic_repository import AcademicRepositoryIOError
 from backend.academic_service import (
     DUPLICATE_RUT_MESSAGE,
+    INCOMPATIBLE_PLANT_PROFILE_MESSAGE,
     INVALID_RUT_MESSAGE,
+    INVALID_STATUS_MESSAGE,
     LISTING_ERROR_MESSAGE,
     PERSISTENCE_ERROR_MESSAGE,
     SUCCESS_MESSAGE,
     AcademicService,
 )
 from backend.contracts import (
+    AcademicErrorCode,
     AcademicFormData,
     AcademicListingError,
     AcademicRecord,
@@ -34,6 +37,7 @@ class MemoryAcademicRepository:
         self.fail_on = fail_on
         self.find_calls: list[str] = []
         self.add_calls: list[AcademicRecord] = []
+        self.update_calls: list[AcademicRecord] = []
         self.list_calls = 0
 
     def list_all(self) -> list[AcademicRecord]:
@@ -53,6 +57,17 @@ class MemoryAcademicRepository:
         if self.fail_on == "add":
             raise AcademicRepositoryIOError("detalle técnico de escritura")
         self.records.append(record)
+
+    def update(self, record: AcademicRecord) -> None:
+        self.update_calls.append(record)
+        if self.fail_on == "update":
+            raise AcademicRepositoryIOError("detalle técnico de actualización")
+        index = next(
+            index
+            for index, existing in enumerate(self.records)
+            if existing.academic_id == record.academic_id
+        )
+        self.records[index] = record
 
 
 @pytest.fixture
@@ -76,7 +91,7 @@ def _record(
         academic_id=academic_id,
         rut=rut,
         name="Registro sintético",
-        plant="Mixta",
+        plant="Especial",
         profile="Docente",
         weekly_hours=20,
         status="Sabático",
@@ -179,6 +194,74 @@ def test_duplicate_never_calls_add(valid_form: AcademicFormData) -> None:
     assert repository.records == [_record()]
 
 
+def test_duplicate_confirmation_preserves_existing_identifier(
+    valid_form: AcademicFormData,
+) -> None:
+    existing = _record()
+    repository = MemoryAcademicRepository([existing])
+    service = AcademicService(repository, id_generator=lambda: "must-not-be-used")
+
+    warning = service.register_academic(valid_form)
+    result = service.register_academic(valid_form, warning.duplicate_confirmation)
+
+    assert warning.error_code is AcademicErrorCode.DUPLICATE_RUT
+    assert warning.duplicate_confirmation is not None
+    assert result.success is True
+    assert repository.add_calls == []
+    assert [record.academic_id for record in repository.records] == [
+        existing.academic_id
+    ]
+    assert repository.update_calls[0].academic_id == existing.academic_id
+
+
+def test_duplicate_warning_without_confirmation_performs_no_write(
+    valid_form: AcademicFormData,
+) -> None:
+    existing = _record()
+    repository = MemoryAcademicRepository([existing])
+
+    result = AcademicService(repository).register_academic(valid_form)
+
+    assert result.success is False
+    assert result.message == DUPLICATE_RUT_MESSAGE
+    assert repository.add_calls == []
+    assert repository.update_calls == []
+    assert repository.records == [existing]
+
+
+def test_changed_duplicate_makes_confirmation_stale(
+    valid_form: AcademicFormData,
+) -> None:
+    existing = _record()
+    repository = MemoryAcademicRepository([existing])
+    service = AcademicService(repository)
+    warning = service.register_academic(valid_form)
+    assert warning.duplicate_confirmation is not None
+    repository.records[0] = replace(existing, name="Snapshot cambiado")
+
+    result = service.register_academic(valid_form, warning.duplicate_confirmation)
+
+    assert result.error_code is AcademicErrorCode.STALE_DUPLICATE_CONFIRMATION
+    assert repository.update_calls == []
+    assert repository.records[0].name == "Snapshot cambiado"
+
+
+def test_overwrite_persistence_failure_keeps_previous_record(
+    valid_form: AcademicFormData,
+) -> None:
+    existing = _record()
+    repository = MemoryAcademicRepository([existing])
+    service = AcademicService(repository)
+    warning = service.register_academic(valid_form)
+    assert warning.duplicate_confirmation is not None
+    repository.fail_on = "update"
+
+    result = service.register_academic(valid_form, warning.duplicate_confirmation)
+
+    assert result.message == PERSISTENCE_ERROR_MESSAGE
+    assert repository.records == [existing]
+
+
 def test_repository_error_returns_controlled_failure_and_logs_technical_detail(
     valid_form: AcademicFormData,
     caplog: pytest.LogCaptureFixture,
@@ -216,15 +299,115 @@ def test_listing_error_keeps_technical_cause(
     assert "detalle técnico de lectura" in caplog.text
 
 
-def test_no_academic_rules_beyond_rut_are_validated() -> None:
+@pytest.mark.parametrize("status", ["Activo", "Inactivo", "Sabático", "Terminado"])
+def test_four_mvp_statuses_are_accepted(
+    valid_form: AcademicFormData,
+    status: str,
+) -> None:
+    repository = MemoryAcademicRepository()
+
+    result = AcademicService(repository).register_academic(
+        replace(valid_form, status=status)
+    )
+
+    assert result.success is True
+    assert repository.records[0].status == status
+
+
+def test_arbitrary_status_is_rejected_by_backend(
+    valid_form: AcademicFormData,
+) -> None:
+    repository = MemoryAcademicRepository()
+
+    result = AcademicService(repository).register_academic(
+        replace(valid_form, status="Estado inventado")
+    )
+
+    assert result.error_code is AcademicErrorCode.INVALID_STATUS
+    assert result.field_errors == {"status": INVALID_STATUS_MESSAGE}
+    assert repository.add_calls == []
+
+
+def test_incompatible_plant_profile_is_rejected_by_backend(
+    valid_form: AcademicFormData,
+) -> None:
+    repository = MemoryAcademicRepository()
+
+    result = AcademicService(repository).register_academic(
+        replace(valid_form, plant="Ordinaria", profile="Docente")
+    )
+
+    assert result.error_code is AcademicErrorCode.INCOMPATIBLE_PLANT_PROFILE
+    assert result.field_errors == {"profile": INCOMPATIBLE_PLANT_PROFILE_MESSAGE}
+    assert repository.add_calls == []
+
+
+@pytest.mark.parametrize(
+    ("changes", "code", "field"),
+    [
+        ({"plant": "Mixta"}, AcademicErrorCode.INVALID_PLANT, "plant"),
+        ({"profile": "Estándar"}, AcademicErrorCode.INVALID_PROFILE, "profile"),
+    ],
+)
+def test_legacy_or_arbitrary_catalog_keys_are_not_accepted_for_new_writes(
+    valid_form: AcademicFormData,
+    changes: dict[str, str],
+    code: AcademicErrorCode,
+    field: str,
+) -> None:
+    repository = MemoryAcademicRepository()
+
+    result = AcademicService(repository).register_academic(
+        replace(valid_form, **changes)
+    )
+
+    assert result.error_code is code
+    assert tuple(result.field_errors) == (field,)
+    assert repository.add_calls == []
+
+
+def test_normal_edit_keeps_identifier_and_own_rut(
+    valid_form: AcademicFormData,
+) -> None:
+    existing = _record()
+    repository = MemoryAcademicRepository([existing])
+
+    result = AcademicService(repository).update_academic(
+        existing.academic_id,
+        replace(valid_form, name="Edición sintética"),
+    )
+
+    assert result.success is True
+    assert repository.records[0].academic_id == existing.academic_id
+    assert repository.records[0].name == "Edición sintética"
+
+
+def test_edit_cannot_take_another_records_rut(
+    valid_form: AcademicFormData,
+) -> None:
+    edited = _record(academic_id="edited", rut="40000000-K")
+    other = _record(academic_id="other", rut="12345678-5")
+    repository = MemoryAcademicRepository([edited, other])
+
+    result = AcademicService(repository).update_academic(
+        edited.academic_id,
+        valid_form,
+    )
+
+    assert result.error_code is AcademicErrorCode.DUPLICATE_RUT
+    assert repository.update_calls == []
+    assert repository.records == [edited, other]
+
+
+def test_name_and_hours_policy_remains_out_of_scope() -> None:
     repository = MemoryAcademicRepository()
     form = AcademicFormData(
         name="",
         rut="12.345.678-5",
-        plant="",
-        profile="",
+        plant="Ordinaria",
+        profile="Mixto",
         weekly_hours=-999,
-        status="",
+        status="Activo",
     )
 
     result = AcademicService(repository).register_academic(form)

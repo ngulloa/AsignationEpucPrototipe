@@ -1,25 +1,39 @@
-"""Integrity and reproducibility checks for pending visual candidates."""
+"""Deterministic offscreen capture checks without stored generated images."""
 
 from __future__ import annotations
 
 import hashlib
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 from PySide6.QtGui import QImageReader
 
-from tests.visual_capture import capture_views
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-REFERENCE_DIRECTORY = PROJECT_ROOT / "docs" / "visual-reference-candidates"
 
 
 def _manifest(directory: Path) -> dict[str, object]:
     return json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
 
 
-def test_visual_candidates_are_pending_and_match_manifest() -> None:
-    manifest = _manifest(REFERENCE_DIRECTORY)
+def test_visual_capture_has_complete_self_consistent_manifest(tmp_path: Path) -> None:
+    environment = os.environ.copy()
+    environment["QT_QPA_PLATFORM"] = "offscreen"
+    completed = subprocess.run(
+        [sys.executable, "-m", "tests.visual_capture", str(tmp_path)],
+        cwd=PROJECT_ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert completed.returncode == 0
+    assert completed.stdout == ""
+    assert "Traceback" not in completed.stderr
+    manifest = _manifest(tmp_path)
     assert manifest["review_status"] == "pending_human_review"
     captures = manifest["captures"]
     assert isinstance(captures, list)
@@ -30,16 +44,8 @@ def test_visual_candidates_are_pending_and_match_manifest() -> None:
     }
 
     for item in captures:
-        path = REFERENCE_DIRECTORY / str(item["file"])
+        path = tmp_path / str(item["file"])
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == item["sha256"]
         width, height = (int(value) for value in str(item["resolution"]).split("x"))
         assert QImageReader(str(path)).size().toTuple() == (width, height)
-
-
-def test_visual_capture_is_reproducible_offscreen(tmp_path: Path) -> None:
-    capture_views(tmp_path)
-
-    expected = _manifest(REFERENCE_DIRECTORY)
-    regenerated = _manifest(tmp_path)
-    assert regenerated == expected

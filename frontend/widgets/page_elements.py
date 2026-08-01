@@ -86,7 +86,6 @@ class ErrorLinkFooter(QWidget):
         layout.addStretch()
         self.button = QPushButton(settings.texts.button_labels["notify_error"])
         self.button.setObjectName("linkButton")
-        self.button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.button.clicked.connect(self.requested)
         layout.addWidget(self.button)
 

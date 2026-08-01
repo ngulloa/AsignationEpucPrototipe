@@ -18,6 +18,10 @@ dev = [
     "ruff>=0.14,<1",
 ]
 
+[project.scripts]
+epuc-academic-assignment = "main:main"
+epuc-reset-local-state = "scripts.reset_local_state:main"
+
 [tool.setuptools]
 packages = [
     "backend",
@@ -25,9 +29,26 @@ packages = [
     "frontend.views",
     "frontend.widgets",
     "persistence",
+    "scripts",
 ]
 py-modules = ["main"]
 include-package-data = true
+
+[tool.setuptools.data-files]
+config = [
+    "config/frontend_texts.json",
+    "config/frontend_visual.json",
+    "config/owner.example.json",
+]
+"data/public" = [
+    "data/public/approved_users.json",
+    "data/public/notifications_error.json",
+    "data/public/tables_index.json",
+]
+"data/public/catalogs" = [
+    "data/public/catalogs/academic_profiles.csv",
+    "data/public/catalogs/academic_staff.csv",
+]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers"

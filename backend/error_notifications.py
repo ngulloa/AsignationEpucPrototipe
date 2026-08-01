@@ -1,4 +1,4 @@
-"""Structured error notifications with no personal or free-form content."""
+"""Structured error notifications with bounded, defensively screened details."""
 
 from __future__ import annotations
 
@@ -51,6 +51,7 @@ class ErrorNotificationService:
             category=notification.category,
             error_code=notification.error_code,
             status="new",
+            description=notification.description,
         )
         self._repository.enqueue_and_record(session.username, stored)
         return stored

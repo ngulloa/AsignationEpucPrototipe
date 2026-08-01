@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
+from dataclasses import replace
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -17,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from frontend.contracts import OwnerAlert
+from frontend.contracts import OwnerAlert, UiResult
 from frontend.settings import ApplicationSettings
 from frontend.style_manager import StyleManager
 from frontend.widgets import AppHeader, PageTitle, Surface, add_page_footer
@@ -32,10 +33,12 @@ class AlertsView(QWidget):
         self,
         settings: ApplicationSettings,
         style_manager: StyleManager,
+        mark_seen: Callable[[str], UiResult],
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.settings = settings
+        self._mark_seen = mark_seen
         self.alerts: tuple[OwnerAlert, ...] = ()
         self.setObjectName("alertsView")
         self._build_ui(style_manager)
@@ -102,6 +105,12 @@ class AlertsView(QWidget):
         panel_layout.addWidget(self.detail_text)
         buttons = QHBoxLayout()
         buttons.addStretch()
+        self.mark_seen_button = QPushButton("Marcar como vista")
+        self.mark_seen_button.setObjectName("primaryButton")
+        self.mark_seen_button.setMinimumSize(200, 48)
+        self.mark_seen_button.setEnabled(False)
+        self.mark_seen_button.clicked.connect(self.mark_selected_seen)
+        buttons.addWidget(self.mark_seen_button)
         self.back_button = QPushButton(self.settings.texts.button_labels["back"])
         self.back_button.setObjectName("secondaryButton")
         self.back_button.setMinimumSize(200, 48)
@@ -130,7 +139,7 @@ class AlertsView(QWidget):
                 alert.source_screen,
                 alert.created_at,
                 alert.category,
-                alert.status,
+                "Nueva" if alert.status == "new" else "Vista",
             )
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
@@ -140,6 +149,7 @@ class AlertsView(QWidget):
             self.table.setRowHeight(row, 48)
         self.empty_label.setVisible(not self.alerts)
         self.detail_text.clear()
+        self.mark_seen_button.setEnabled(False)
 
     def show_error(self, message: str) -> None:
         self.detail_text.setPlainText(message)
@@ -153,5 +163,21 @@ class AlertsView(QWidget):
                 f"Origen: {alert.source_screen}\n"
                 f"Categoría: {alert.category}\n"
                 f"Código: {alert.error_code}\n"
-                f"Estado: {alert.status}"
+                f"Estado: {'Nueva' if alert.status == 'new' else 'Vista'}\n\n"
+                f"Descripción:\n{alert.description}"
             )
+            self.mark_seen_button.setEnabled(alert.status == "new")
+
+    def mark_selected_seen(self) -> None:
+        row = self.table.currentRow()
+        if not 0 <= row < len(self.alerts):
+            return
+        alert = self.alerts[row]
+        result = self._mark_seen(alert.alert_id)
+        if not result.success:
+            self.show_error(result.message)
+            return
+        updated = list(self.alerts)
+        updated[row] = replace(alert, status="seen")
+        self.set_alerts(updated)
+        self.table.selectRow(row)

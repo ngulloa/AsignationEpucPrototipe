@@ -43,6 +43,12 @@ class ErrorNotificationRequest:
     source_screen: str
     category: str
     error_code: str
+    description: str
+
+
+@dataclass(frozen=True, slots=True)
+class ShareTableRequest:
+    name: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,6 +62,8 @@ class SharedAcademicTable:
     username: str
     academics: tuple[AcademicRecord, ...]
     table_number: int | None = None
+    name: str = ""
+    publication_state: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,6 +72,8 @@ class ApprovalItem:
     username: str
     requested_at: str
     status: str
+    can_withdraw: bool = False
+    can_approve: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +84,7 @@ class OwnerAlert:
     category: str
     error_code: str
     status: str
+    description: str
 
 
 @dataclass(frozen=True, slots=True)

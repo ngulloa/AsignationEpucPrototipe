@@ -37,6 +37,10 @@ class AcademicsListView(QWidget):
     add_requested = Signal()
     edit_requested = Signal(object)
     shared_edit_requested = Signal(int, object)
+    share_requested = Signal(str)
+    public_rename_requested = Signal(int, str)
+    public_publish_requested = Signal(int)
+    public_draft_cancel_requested = Signal(int)
     menu_requested = Signal()
     logout_requested = Signal()
     error_requested = Signal(str)
@@ -55,6 +59,7 @@ class AcademicsListView(QWidget):
         self.shared_tables: tuple[SharedAcademicTable, ...] = ()
         self.action_buttons: list[QPushButton] = []
         self._can_edit_shared = False
+        self._session_username = ""
         self._compact_toolbar = False
         self._latest_error = settings.texts.messages["save_error"]
         self.setObjectName("academicsListView")
@@ -121,6 +126,18 @@ class AcademicsListView(QWidget):
         self.edit_selected_button.clicked.connect(self._edit_selected)
         self.add_button = self._action_button(texts.button_labels["add_academic"], True)
         self.add_button.clicked.connect(self.add_requested)
+        self.table_name_input = QLineEdit()
+        self.table_name_input.setPlaceholderText("Nombre de la tabla")
+        self.table_name_input.setMaxLength(80)
+        self.table_name_input.setMinimumSize(220, 40)
+        self.share_button = self._action_button("Compartir tabla", False)
+        self.share_button.setEnabled(False)
+        self.share_button.clicked.connect(
+            lambda: self.share_requested.emit(self.table_name_input.text())
+        )
+        self.table_name_input.textChanged.connect(
+            lambda value: self.share_button.setEnabled(bool(value.strip()))
+        )
         self.back_button = self._action_button(
             texts.button_labels["back_to_menu"], False
         )
@@ -161,10 +178,43 @@ class AcademicsListView(QWidget):
         shared_hint = QLabel(texts.messages["select_shared_table"])
         shared_hint.setObjectName("helperText")
         shared_layout.addWidget(shared_hint)
+        rename_row = QHBoxLayout()
+        self.public_name_input = QLineEdit()
+        self.public_name_input.setPlaceholderText("Nuevo nombre de la tabla")
+        self.public_name_input.setMaxLength(80)
+        self.public_name_input.setEnabled(False)
+        self.public_name_input.textChanged.connect(self._refresh_public_rename_state)
+        rename_row.addWidget(self.public_name_input, stretch=1)
+        self.rename_public_button = self._action_button("Renombrar tabla", False)
+        self.rename_public_button.setEnabled(False)
+        self.rename_public_button.clicked.connect(self._rename_selected_public_table)
+        rename_row.addWidget(self.rename_public_button)
+        shared_layout.addLayout(rename_row)
+        publication_row = QHBoxLayout()
+        self.shared_edit_notice = QLabel(
+            "Contenido compartido: los cambios se mantienen en un borrador privado."
+        )
+        self.shared_edit_notice.setObjectName("helperText")
+        publication_row.addWidget(self.shared_edit_notice, stretch=1)
+        self.cancel_public_draft_button = self._action_button("Cancelar cambios", False)
+        self.cancel_public_draft_button.setMinimumWidth(0)
+        self.cancel_public_draft_button.setEnabled(False)
+        self.cancel_public_draft_button.clicked.connect(
+            self._cancel_selected_public_draft
+        )
+        publication_row.addWidget(self.cancel_public_draft_button)
+        self.publish_public_button = self._action_button("Publicar", True)
+        self.publish_public_button.setMinimumWidth(0)
+        self.publish_public_button.setEnabled(False)
+        self.publish_public_button.clicked.connect(self._publish_selected_public_table)
+        publication_row.addWidget(self.publish_public_button)
+        shared_layout.addLayout(publication_row)
         self.shared_tables_table = QTableWidget()
         self.shared_tables_table.setObjectName("sharedTablesTable")
-        self.shared_tables_table.setColumnCount(2)
-        self.shared_tables_table.setHorizontalHeaderLabels(("#", "Nombre de usuario"))
+        self.shared_tables_table.setColumnCount(3)
+        self.shared_tables_table.setHorizontalHeaderLabels(
+            ("#", "Nombre de tabla", "Titular")
+        )
         self._configure_table_selection(self.shared_tables_table)
         self.shared_tables_table.setMaximumHeight(180)
         self.shared_tables_table.horizontalHeader().setSectionResizeMode(
@@ -172,6 +222,9 @@ class AcademicsListView(QWidget):
         )
         self.shared_tables_table.horizontalHeader().setSectionResizeMode(
             1, QHeaderView.ResizeMode.Stretch
+        )
+        self.shared_tables_table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeMode.Stretch
         )
         self.shared_tables_table.itemSelectionChanged.connect(
             self._show_selected_shared_table
@@ -212,15 +265,19 @@ class AcademicsListView(QWidget):
         if compact:
             self.toolbar.setColumnStretch(1, 0)
             self.toolbar.addWidget(self.search_input, 0, 0, 1, 3)
-            self.toolbar.addWidget(self.edit_selected_button, 1, 0)
-            self.toolbar.addWidget(self.add_button, 1, 1)
-            self.toolbar.addWidget(self.back_button, 1, 2)
+            self.toolbar.addWidget(self.table_name_input, 1, 0, 1, 2)
+            self.toolbar.addWidget(self.share_button, 1, 2)
+            self.toolbar.addWidget(self.edit_selected_button, 2, 0)
+            self.toolbar.addWidget(self.add_button, 2, 1)
+            self.toolbar.addWidget(self.back_button, 2, 2)
         else:
             self.toolbar.addWidget(self.search_input, 0, 0)
             self.toolbar.setColumnStretch(1, 1)
-            self.toolbar.addWidget(self.edit_selected_button, 0, 2)
-            self.toolbar.addWidget(self.add_button, 0, 3)
-            self.toolbar.addWidget(self.back_button, 0, 4)
+            self.toolbar.addWidget(self.table_name_input, 0, 2)
+            self.toolbar.addWidget(self.share_button, 0, 3)
+            self.toolbar.addWidget(self.edit_selected_button, 0, 4)
+            self.toolbar.addWidget(self.add_button, 0, 5)
+            self.toolbar.addWidget(self.back_button, 0, 6)
         self._compact_toolbar = compact
 
     def resizeEvent(self, event: QResizeEvent) -> None:
@@ -229,6 +286,7 @@ class AcademicsListView(QWidget):
         if compact != self._compact_toolbar:
             self._arrange_toolbar(compact=compact)
             self.header.institution_label.setVisible(not compact)
+        self.shared_edit_notice.setVisible(not compact)
         super().resizeEvent(event)
 
     def _academic_table(self, *, include_actions: bool = True) -> QTableWidget:
@@ -277,8 +335,10 @@ class AcademicsListView(QWidget):
         return button
 
     def set_session(self, username: str) -> None:
+        self._session_username = username
         self.header.username_label.setText(username)
         self.header.username_label.setVisible(bool(username))
+        self._refresh_public_rename_state()
 
     def set_shared_edit_permission(self, allowed: bool) -> None:
         self._can_edit_shared = allowed
@@ -293,7 +353,9 @@ class AcademicsListView(QWidget):
         self._refresh_edit_state()
 
     def set_shared_tables(self, shared_tables: Iterable[SharedAcademicTable]) -> None:
-        self.shared_tables = tuple(shared_tables)
+        self.shared_tables = tuple(
+            sorted(shared_tables, key=lambda table: table.name.casefold())
+        )
         self.shared_tables_table.clearContents()
         self.shared_tables_table.setRowCount(len(self.shared_tables))
         for row, shared_table in enumerate(self.shared_tables):
@@ -301,16 +363,22 @@ class AcademicsListView(QWidget):
             number.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.shared_tables_table.setItem(row, 0, number)
             self.shared_tables_table.setItem(
-                row, 1, QTableWidgetItem(shared_table.username)
+                row, 1, QTableWidgetItem(shared_table.name)
+            )
+            self.shared_tables_table.setItem(
+                row, 2, QTableWidgetItem(shared_table.username)
             )
             self.shared_tables_table.setRowHeight(row, 40)
         self.shared_records_table.setRowCount(0)
         self.shared_records_table.clearSelection()
+        self.public_name_input.clear()
         self.shared_empty_label.setVisible(not self.shared_tables)
         self.shared_context_label.setText(
             self.settings.texts.messages["select_shared_table"]
         )
         self._refresh_edit_state()
+        self._refresh_public_rename_state()
+        self._refresh_publication_state()
 
     def _populate_academic_table(
         self,
@@ -364,7 +432,12 @@ class AcademicsListView(QWidget):
         is_personal = index == 0
         self.add_button.setVisible(is_personal)
         self.search_input.setVisible(is_personal)
+        self.table_name_input.setVisible(is_personal)
+        self.share_button.setVisible(is_personal)
         self._refresh_edit_state()
+
+    def set_private_table_name(self, name: str) -> None:
+        self.table_name_input.setText(name)
 
     def _refresh_edit_state(self) -> None:
         if self.mode_stack.currentIndex() == 0:
@@ -414,14 +487,106 @@ class AcademicsListView(QWidget):
         if not 0 <= row < len(self.shared_tables):
             return
         shared_table = self.shared_tables[row]
+        self.public_name_input.setText(shared_table.name)
         self.shared_context_label.setText(
-            f"Tabla de {shared_table.username} · Registros: {len(shared_table.academics)}"
+            f"Tabla pública: {shared_table.name} · Titular: {shared_table.username} · "
+            f"Registros: {len(shared_table.academics)} · Está editando contenido "
+            "compartido"
         )
         self._populate_academic_table(
             self.shared_records_table, shared_table.academics, include_actions=False
         )
         self.shared_records_table.clearSelection()
         self._refresh_edit_state()
+        self._refresh_public_rename_state()
+        self._refresh_publication_state()
+
+    def _refresh_public_rename_state(self) -> None:
+        row = self.shared_tables_table.currentRow()
+        owns_selected = (
+            0 <= row < len(self.shared_tables)
+            and self.shared_tables[row].username == self._session_username
+            and self.shared_tables[row].table_number is not None
+        )
+        self.public_name_input.setEnabled(owns_selected)
+        self.rename_public_button.setEnabled(
+            owns_selected and bool(self.public_name_input.text().strip())
+        )
+
+    def _rename_selected_public_table(self) -> None:
+        row = self.shared_tables_table.currentRow()
+        if not 0 <= row < len(self.shared_tables):
+            return
+        table = self.shared_tables[row]
+        if table.username != self._session_username or table.table_number is None:
+            self.show_result(
+                "Solo el titular puede renombrar esta tabla.",
+                success=False,
+            )
+            return
+        self.public_rename_requested.emit(
+            table.table_number,
+            self.public_name_input.text(),
+        )
+
+    def _refresh_publication_state(self) -> None:
+        row = self.shared_tables_table.currentRow()
+        operation = (
+            self.shared_tables[row] if 0 <= row < len(self.shared_tables) else None
+        )
+        has_draft = operation is not None and operation.publication_state is not None
+        allowed = self._can_edit_shared and has_draft
+        self.publish_public_button.setEnabled(allowed)
+        self.cancel_public_draft_button.setEnabled(
+            allowed
+            and operation.publication_state not in {"committed_local", "retry_pending"}
+        )
+        if has_draft:
+            self.shared_edit_notice.setText(
+                f"Borrador privado · estado: {operation.publication_state}"
+            )
+        else:
+            self.shared_edit_notice.setText(
+                "Contenido compartido: los cambios se mantienen en un borrador privado."
+            )
+
+    def _publish_selected_public_table(self) -> None:
+        row = self.shared_tables_table.currentRow()
+        if not 0 <= row < len(self.shared_tables):
+            return
+        table = self.shared_tables[row]
+        if table.table_number is not None and table.publication_state is not None:
+            self.public_publish_requested.emit(table.table_number)
+
+    def _cancel_selected_public_draft(self) -> None:
+        row = self.shared_tables_table.currentRow()
+        if not 0 <= row < len(self.shared_tables):
+            return
+        table = self.shared_tables[row]
+        if table.table_number is not None and table.publication_state is not None:
+            self.public_draft_cancel_requested.emit(table.table_number)
+
+    def set_publication_busy(self, busy: bool) -> None:
+        self.publish_public_button.setText("Publicando…" if busy else "Publicar")
+        self.shared_tables_table.setEnabled(not busy)
+        self.shared_records_table.setEnabled(not busy)
+        self.header.logout_button.setEnabled(not busy)
+        self.back_button.setEnabled(not busy)
+        self.personal_table_button.setEnabled(not busy)
+        self.shared_tables_button.setEnabled(not busy)
+        self.add_button.setEnabled(not busy)
+        self.share_button.setEnabled(
+            False if busy else bool(self.table_name_input.text().strip())
+        )
+        self.table_name_input.setEnabled(not busy)
+        self.rename_public_button.setEnabled(False if busy else True)
+        self.cancel_public_draft_button.setEnabled(False if busy else True)
+        self.edit_selected_button.setEnabled(
+            False if busy else self.edit_selected_button.isEnabled()
+        )
+        if not busy:
+            self._refresh_edit_state()
+            self._refresh_publication_state()
 
     def show_result(self, message: str, *, success: bool) -> None:
         self.feedback_label.setText(message)

@@ -121,7 +121,8 @@ class RegisterView(QWidget):
         panel_layout.addLayout(buttons)
 
         body.addWidget(panel, stretch=1, alignment=Qt.AlignmentFlag.AlignHCenter)
-        add_page_footer(body, self.settings, self._request_error)
+        self.error_footer = add_page_footer(body, self.settings, self._request_error)
+        self.error_footer.hide()
         root.addLayout(body, stretch=1)
         for control in (
             self.username_input,

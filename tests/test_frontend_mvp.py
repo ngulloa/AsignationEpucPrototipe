@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QPoint, Qt
-from PySide6.QtWidgets import QAbstractItemView, QLineEdit, QPushButton
+from threading import Event
+
+from PySide6.QtCore import QPoint, Qt, QTimer
+from PySide6.QtWidgets import (
+    QAbstractButton,
+    QAbstractItemView,
+    QCheckBox,
+    QLineEdit,
+    QPushButton,
+)
 from pytestqt.qtbot import QtBot
 
+from backend.academic_service import DUPLICATE_RUT_MESSAGE
 from backend.contracts import AcademicFormData
 from frontend.contracts import OwnerAlert, UiResult
 from frontend.controller import FakeFrontendController
@@ -56,6 +65,7 @@ def test_login_is_initial_password_is_hidden_and_length_controls_submit(
     login = window.login_view
 
     assert window.current_screen == LOGIN_SCREEN
+    assert login.username_input.placeholderText() == ""
     assert login.password_input.echoMode() is QLineEdit.EchoMode.Password
     assert login.password_input.maxLength() == 8
     login.username_input.setText("usuario")
@@ -83,6 +93,7 @@ def test_authentication_error_and_success_owner_capabilities(qtbot: QtBot) -> No
     qtbot.mouseClick(login.login_button, Qt.MouseButton.LeftButton)
     assert window.current_screen == MENU_SCREEN
     assert window.authenticated_username == "propietario"
+    assert window.main_menu_view.approvals_button.text() == "Aprobar"
     assert window.main_menu_view.approvals_button.isVisibleTo(window.main_menu_view)
     assert window.main_menu_view.alerts_button.isVisibleTo(window.main_menu_view)
 
@@ -94,12 +105,59 @@ def test_normal_user_does_not_receive_owner_actions_and_can_logout(
     _authenticate(window, qtbot, "usuario.demo")
 
     menu = window.main_menu_view
-    assert not menu.approvals_button.isVisibleTo(menu)
+    assert menu.approvals_button.isVisibleTo(menu)
     assert not menu.alerts_button.isVisibleTo(menu)
     qtbot.mouseClick(menu.header.logout_button, Qt.MouseButton.LeftButton)
     assert window.current_screen == LOGIN_SCREEN
     assert window.authenticated_username == ""
     assert window.login_view.password_input.text() == ""
+
+
+def test_approved_non_owner_keeps_the_existing_approval_label(qtbot: QtBot) -> None:
+    window = _window(qtbot)
+    menu = window.main_menu_view
+
+    menu.set_session("persona.aprobada", is_owner=False, can_approve=True)
+
+    assert menu.approvals_button.text() == "Administrar aprobaciones"
+    assert menu.approvals_button.isVisibleTo(menu)
+
+
+def test_global_button_padding_and_clickable_cursors(
+    qtbot: QtBot,
+    qapp: object,
+) -> None:
+    window = _window(qtbot)
+    padding = window.style_manager.button_horizontal_padding
+    stylesheet = window.styleSheet()
+    rule_start = stylesheet.index("QAbstractButton {")
+    rule_end = stylesheet.index("}", rule_start)
+    abstract_button_rule = stylesheet[rule_start:rule_end]
+
+    assert padding == SETTINGS.visual.spacing["medium"]
+    assert f"padding-left: {padding}px;" in abstract_button_rule
+    assert f"padding-right: {padding}px;" in abstract_button_rule
+    enabled_buttons = [
+        button for button in window.findChildren(QAbstractButton) if button.isEnabled()
+    ]
+    assert enabled_buttons
+    assert all(
+        button.cursor().shape() is Qt.CursorShape.PointingHandCursor
+        for button in enabled_buttons
+    )
+
+    login = window.login_view
+    assert login.login_button.cursor().shape() is Qt.CursorShape.ArrowCursor
+    login.username_input.setText("persona")
+    login.password_input.setText("1234")
+    assert login.login_button.cursor().shape() is Qt.CursorShape.PointingHandCursor
+
+    checkbox = QCheckBox("Control clickeable", login)
+    checkbox.show()
+    qapp.processEvents()
+    assert checkbox.cursor().shape() is Qt.CursorShape.PointingHandCursor
+    checkbox.setEnabled(False)
+    assert checkbox.cursor().shape() is Qt.CursorShape.ArrowCursor
 
 
 def test_registration_navigation_hidden_passwords_and_fake_result(qtbot: QtBot) -> None:
@@ -133,7 +191,7 @@ def test_shared_table_selector_has_required_columns_and_selectable_records(
     assert [
         view.shared_tables_table.horizontalHeaderItem(column).text()
         for column in range(view.shared_tables_table.columnCount())
-    ] == ["#", "Nombre de usuario"]
+    ] == ["#", "Nombre de tabla", "Titular"]
     assert view.shared_tables_table.rowCount() == 2
     assert (
         view.shared_tables_table.selectionMode()
@@ -189,6 +247,7 @@ def test_approved_user_edits_shared_record_through_reused_form(
     assert view.edit_selected_button.isEnabled()
     qtbot.mouseClick(view.edit_selected_button, Qt.MouseButton.LeftButton)
     assert window.academic_form_view.page_title.label.text() == "EDITAR ACADÉMICO"
+    assert window.academic_form_view.save_button.text() == "Publicar"
     window.academic_form_view.name_input.setText("Académica compartida editada")
     qtbot.mouseClick(
         window.academic_form_view.save_button,
@@ -196,10 +255,11 @@ def test_approved_user_edits_shared_record_through_reused_form(
     )
 
     assert window.current_screen == "academic_list"
+    qtbot.waitUntil(lambda: not window._public_operation.active, timeout=5000)
     assert controller.list_shared_tables()[0].academics[0].name == (
         "Académica compartida editada"
     )
-    assert "actualizada" in view.feedback_label.text().lower()
+    assert "publicado" in view.feedback_label.text().lower()
 
 
 def test_unapproved_user_cannot_start_or_save_shared_edit(qtbot: QtBot) -> None:
@@ -239,7 +299,7 @@ def test_academic_form_prepares_duplicate_invalid_and_save_errors(qtbot: QtBot) 
     window = _window(qtbot)
     _authenticate(window, qtbot)
     expected = (
-        ("11111111-1", "Rut ya registrado."),
+        ("11111111-1", DUPLICATE_RUT_MESSAGE),
         ("00000000-0", "Rut inválido."),
         ("guardar-error", "Error al guardar."),
     )
@@ -302,26 +362,27 @@ def test_update_form_has_read_only_user_summary_result_and_error(qtbot: QtBot) -
     view.update_name_input.setText("error")
     assert view.update_button.isEnabled()
     qtbot.mouseClick(view.update_button, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(
+        lambda: view.result_label.text() == "Error de actualización.",
+        timeout=2000,
+    )
     assert view.result_label.text() == "Error de actualización."
     assert view.result_label.objectName() == "failureMessage"
 
 
 def test_update_exposes_a_transient_busy_state(qtbot: QtBot) -> None:
-    observed: list[tuple[bool, bool, str]] = []
+    started = Event()
+    release = Event()
+    calls = 0
 
     class BusyAwareController(FakeFrontendController):
         window: object | None = None
 
         def run_update(self, request: object) -> UiResult:
-            assert self.window is not None
-            view = self.window.update_view
-            observed.append(
-                (
-                    view.update_button.isEnabled(),
-                    view.update_name_input.isEnabled(),
-                    view.update_button.text(),
-                )
-            )
+            nonlocal calls
+            calls += 1
+            started.set()
+            assert release.wait(timeout=2)
             return UiResult(True, "Actualización controlada.")
 
     controller = BusyAwareController()
@@ -335,11 +396,23 @@ def test_update_exposes_a_transient_busy_state(qtbot: QtBot) -> None:
     view.update_name_input.setText("Prueba de progreso")
 
     qtbot.mouseClick(view.update_button, Qt.MouseButton.LeftButton)
-
-    assert observed == [(False, False, "Actualizando…")]
+    qtbot.waitUntil(started.is_set, timeout=2000)
+    assert not view.update_button.isEnabled()
+    assert not view.update_name_input.isEnabled()
+    assert not view.header.logout_button.isEnabled()
+    assert view.update_button.text() == "Actualizando…"
+    view.submit()
+    assert calls == 1
+    ui_tick: list[bool] = []
+    QTimer.singleShot(0, lambda: ui_tick.append(True))
+    qtbot.waitUntil(lambda: bool(ui_tick), timeout=1000)
+    release.set()
+    qtbot.waitUntil(lambda: not view._operation.active, timeout=2000)
     assert view.update_button.isEnabled()
     assert view.update_name_input.isEnabled()
     assert view.update_button.text() == "Actualizar"
+    assert view.result_label.text() == "Actualización controlada."
+    assert view.close_worker() is True
 
 
 def test_approvals_and_owner_alerts_have_selectable_state(qtbot: QtBot) -> None:
@@ -350,6 +423,7 @@ def test_approvals_and_owner_alerts_have_selectable_state(qtbot: QtBot) -> None:
         category="persistence",
         error_code="SAVE_ERROR",
         status="new",
+        description="Descripción ficticia.",
     )
     window = build_frontend_window(
         controller=FakeFrontendController(alerts=(alert,)), settings=SETTINGS

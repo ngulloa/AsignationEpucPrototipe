@@ -9,6 +9,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import QSize
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from backend.contracts import AcademicRecord
@@ -19,8 +20,8 @@ from persistence.settings_repository import load_application_settings
 VISUAL_FIXTURE = (
     AcademicRecord(
         academic_id="visual-1",
-        name="Ana Cifuentes Gatica Cornejo",
-        rut="12345678-9",
+        name="Persona Visual Uno",
+        rut="12345678-5",
         plant="Ordinaria",
         profile="Mixto",
         weekly_hours=40,
@@ -28,8 +29,8 @@ VISUAL_FIXTURE = (
     ),
     AcademicRecord(
         academic_id="visual-2",
-        name="Nicolás Ignacio Ulloa Gatica",
-        rut="10999678-9",
+        name="Persona Visual Dos",
+        rut="40000000-K",
         plant="Mixta",
         profile="Docente",
         weekly_hours=40,
@@ -37,8 +38,8 @@ VISUAL_FIXTURE = (
     ),
     AcademicRecord(
         academic_id="visual-3",
-        name="Nicolás Ignacio Ulloa Gatica",
-        rut="10999678-9",
+        name="Persona Visual Tres",
+        rut="11000003-0",
         plant="Mixta",
         profile="Docente",
         weekly_hours=40,
@@ -195,7 +196,7 @@ def capture_views(output_directory: Path) -> None:
     capture(
         "error_notification",
         "error_notification",
-        "clasificación predeterminada sin texto libre",
+        "clasificación y descripción segura requerida",
         show_preselected_error,
     )
     capture(
@@ -216,6 +217,8 @@ def capture_views(output_directory: Path) -> None:
         form = window.academic_form_view
         form.name_input.setText("Académico de prueba")
         form.rut_input.setText("11111111-1")
+        form.plant_combo.setCurrentIndex(form.plant_combo.findData("Ordinaria"))
+        form.profile_combo.setCurrentIndex(form.profile_combo.findData("Mixto"))
         form.submit()
 
     capture(
@@ -229,6 +232,12 @@ def capture_views(output_directory: Path) -> None:
         window.show_update()
         window.update_view.update_name_input.setText("error")
         window.update_view.submit()
+        for _attempt in range(200):
+            if not window.update_view._operation.active:
+                break
+            QTest.qWait(10)
+        if window.update_view._operation.active:
+            raise RuntimeError("El worker ficticio de actualización no finalizó.")
 
     capture(
         "update_error",
@@ -259,9 +268,9 @@ def capture_views(output_directory: Path) -> None:
         "deterministic_environment": "Qt offscreen; datos FakeFrontendController",
         "comparison": {
             "penpot": (
-                "Comparación visual realizada con 01_Wireframes.pdf y los tres "
-                "PNG exportados en design.prototipe; se conserva jerarquía, color, "
-                "tipografía, superficies y distribución de 1280x900."
+                "Comparación visual realizada con 01_Wireframes.pdf y la fuente "
+                "editable Penpot; se conserva jerarquía, color, tipografía, "
+                "superficies y distribución de 1280x900."
             ),
             "existing_references": (
                 "No se encontró un conjunto previo de referencias finales aprobadas."

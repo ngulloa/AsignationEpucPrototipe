@@ -88,7 +88,6 @@ class LoginView(QWidget):
         form.setVerticalSpacing(spacing["medium"])
         self.username_input = QLineEdit()
         self.username_input.setObjectName("usernameInput")
-        self.username_input.setPlaceholderText("usuario.demo")
         self.username_input.setMinimumHeight(spacing["large"] + spacing["medium"])
         form.addRow(texts.field_labels["username"], self.username_input)
 
@@ -125,7 +124,8 @@ class LoginView(QWidget):
         panel_layout.addLayout(buttons)
 
         body.addWidget(panel, stretch=1, alignment=self._center())
-        add_page_footer(body, self.settings, self._request_error)
+        self.error_footer = add_page_footer(body, self.settings, self._request_error)
+        self.error_footer.hide()
         root.addLayout(body, stretch=1)
 
         self.username_input.textChanged.connect(self._refresh_submit_state)

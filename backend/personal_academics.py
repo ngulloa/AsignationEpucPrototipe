@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+from backend.academic_catalog import AcademicCatalogs, get_academic_catalogs
 from backend.academic_service import AcademicService
 from backend.approval import AuthorizationError
-from backend.contracts import AcademicFormData, AcademicRecord, SubmissionResult
+from backend.contracts import (
+    AcademicFormData,
+    AcademicRecord,
+    DuplicateRutConfirmation,
+    SubmissionResult,
+)
 from backend.session import SessionMemory
 from persistence.paths import DEFAULT_PATHS, ProjectPaths
 from persistence.personal_academic_repository import (
@@ -23,12 +29,17 @@ class PersonalAcademicService:
     ) -> None:
         self._sessions = sessions
         self._paths = paths
+        self._catalogs: AcademicCatalogs = get_academic_catalogs(paths)
 
     def list_academics(self) -> list[AcademicRecord]:
         return self._service().list_academics()
 
-    def save_academic(self, form_data: AcademicFormData) -> SubmissionResult:
-        return self._service().register_academic(form_data)
+    def save_academic(
+        self,
+        form_data: AcademicFormData,
+        overwrite_confirmation: DuplicateRutConfirmation | None = None,
+    ) -> SubmissionResult:
+        return self._service().register_academic(form_data, overwrite_confirmation)
 
     def update_academic(
         self,
@@ -44,5 +55,6 @@ class PersonalAcademicService:
         repository = build_personal_academic_repository(
             session.username,
             paths=self._paths,
+            catalogs=self._catalogs,
         )
-        return AcademicService(repository)
+        return AcademicService(repository, catalogs=self._catalogs)

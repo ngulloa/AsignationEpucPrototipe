@@ -86,12 +86,39 @@ class ApprovalService:
         entry = self._approvals.find_request(request_id)
         if entry is None:
             raise ApprovalError("La solicitud de aprobación no existe.")
+        if entry.status != "pending":
+            raise ApprovalError("La solicitud ya no está pendiente.")
         return self.grant_approval(entry.username)
 
     def list_requests(self) -> list[ApprovalEntry]:
-        if not self.get_permissions().approved:
-            raise AuthorizationError("No tiene permiso para consultar solicitudes.")
-        return self._approvals.list_all()
+        permissions = self.get_permissions()
+        entries = self._approvals.list_all()
+        if permissions.approved:
+            return entries
+        return [entry for entry in entries if entry.username == permissions.username]
+
+    def withdraw_request(self, request_id: str) -> ApprovalEntry:
+        """Logically withdraw the authenticated request owner's pending entry."""
+        username = self._authenticated_username()
+        entry = self._approvals.find_request(request_id)
+        if entry is None:
+            raise ApprovalError("La solicitud de aprobación no existe.")
+        if entry.username != username:
+            raise AuthorizationError("Solo el titular puede retirar esta solicitud.")
+        if entry.status == "approved":
+            raise ApprovalError("Una solicitud aprobada no puede retirarse.")
+        if entry.status == "withdrawn":
+            raise ApprovalError("La solicitud ya fue retirada.")
+        withdrawn = ApprovalEntry(
+            request_id=entry.request_id,
+            username=entry.username,
+            status="withdrawn",
+            requested_at=entry.requested_at,
+            withdrawn_at=datetime.now(UTC).isoformat(),
+            withdrawn_by=username,
+        )
+        self._approvals.save(withdrawn)
+        return withdrawn
 
     def get_permissions(self) -> UserPermissions:
         username = self._authenticated_username()

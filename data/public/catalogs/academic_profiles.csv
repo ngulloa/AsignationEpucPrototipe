@@ -1,0 +1,6 @@
+profile_id,staff_id,key,name,teaching_percentage,management_percentage,research_percentage,allows_extra_courses,active
+academic-profile-ordinary-research-v1,academic-staff-ordinary-v1,Investigador,Investigador,30,10,60,false,true
+academic-profile-ordinary-mixed-v1,academic-staff-ordinary-v1,Mixto,Mixto,50,10,40,true,true
+academic-profile-special-standard-v1,academic-staff-special-v1,Standard,Standard,75,10,15,true,true
+academic-profile-special-teaching-v1,academic-staff-special-v1,Docente,Docente,90,10,0,true,true
+academic-profile-special-management-v1,academic-staff-special-v1,Gestión,Gestión,75,25,0,true,true

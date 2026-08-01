@@ -6,6 +6,7 @@ import base64
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from backend.academic_catalog import get_academic_catalogs
 from persistence.atomic_json_repository import (
     AtomicJsonRepository,
     JsonDocument,
@@ -116,7 +117,9 @@ class JsonUserRepository:
         }
         self._store(canonical).write(document)
         CsvAcademicRepository(
-            self.paths.personal_academics_path(canonical)
+            self.paths.personal_academics_path(canonical),
+            appointments_path=self.paths.personal_academic_appointments_path(canonical),
+            catalogs=get_academic_catalogs(self.paths),
         ).replace_all([])
         return self._to_user(document)
 

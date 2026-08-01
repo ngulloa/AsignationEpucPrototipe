@@ -2,11 +2,55 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QPointF
+from PySide6.QtCore import QEvent, QObject, QPointF, Qt
 from PySide6.QtGui import QColor, QFont, QFontDatabase
-from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
+from PySide6.QtWidgets import (
+    QAbstractButton,
+    QApplication,
+    QGraphicsDropShadowEffect,
+    QWidget,
+)
 
 from frontend.settings import VisualSettings
+
+
+class _ClickableCursorFilter(QObject):
+    """Keep enabled abstract buttons discoverable without per-view setup."""
+
+    _REFRESH_EVENTS = frozenset(
+        {
+            QEvent.Type.EnabledChange,
+            QEvent.Type.ParentChange,
+            QEvent.Type.Polish,
+            QEvent.Type.Show,
+        }
+    )
+
+    def __init__(self, root: QWidget) -> None:
+        super().__init__(root)
+        self._root = root
+
+    @staticmethod
+    def _refresh_button(button: QAbstractButton) -> None:
+        cursor = (
+            Qt.CursorShape.PointingHandCursor
+            if button.isEnabled()
+            else Qt.CursorShape.ArrowCursor
+        )
+        button.setCursor(cursor)
+
+    def refresh_all(self) -> None:
+        for button in self._root.findChildren(QAbstractButton):
+            self._refresh_button(button)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if (
+            isinstance(watched, QAbstractButton)
+            and event.type() in self._REFRESH_EVENTS
+            and self._root.isAncestorOf(watched)
+        ):
+            self._refresh_button(watched)
+        return super().eventFilter(watched, event)
 
 
 class StyleManager:
@@ -15,6 +59,8 @@ class StyleManager:
     def __init__(self, visual: VisualSettings) -> None:
         self.visual = visual
         self.font_family = self._select_font_family()
+        self.button_horizontal_padding = self.visual.spacing["medium"]
+        self._clickable_cursor_filter: _ClickableCursorFilter | None = None
 
     def _select_font_family(self) -> str:
         available = set(QFontDatabase.families())
@@ -44,6 +90,7 @@ class StyleManager:
         focus_border = self.visual.borders["focus"]
         control_color = colors[control_border.color_token]
         focus_color = colors[focus_border.color_token]
+        button_padding = self.button_horizontal_padding
 
         return f"""
             QWidget#appRoot {{
@@ -72,7 +119,6 @@ class StyleManager:
                 color: {colors["neutral_white"]};
                 font-size: {sizes["caption"]}px;
                 text-decoration: underline;
-                padding: 0;
             }}
             QLabel#screenTitle {{
                 background: transparent;
@@ -115,12 +161,17 @@ class StyleManager:
                 border: {control_border.width}px solid {control_color};
                 border-radius: {radii["small"]}px;
             }}
+            QAbstractButton {{
+                padding-left: {button_padding}px;
+                padding-right: {button_padding}px;
+            }}
             QPushButton {{
                 border: none;
                 border-radius: 0;
                 font-size: {sizes["button"]}px;
                 font-weight: {weights["regular"]};
-                padding: 0;
+                padding-top: 0;
+                padding-bottom: 0;
             }}
             QPushButton#primaryButton {{
                 background-color: {colors["brand_light_blue"]};
@@ -151,13 +202,13 @@ class StyleManager:
                 color: {colors["brand_light_blue"]};
                 font-size: {sizes["body"]}px;
                 text-decoration: underline;
-                padding: {self.visual.spacing["extra_small"]}px;
+                padding-top: {self.visual.spacing["extra_small"]}px;
+                padding-bottom: {self.visual.spacing["extra_small"]}px;
             }}
             QPushButton#toggleButton {{
                 background-color: {colors["neutral_white"]};
                 color: {colors["brand_light_blue"]};
                 border: {control_border.width}px solid {colors["neutral_gray_300"]};
-                padding: 0 {self.visual.spacing["medium"]}px;
             }}
             QPushButton#toggleButton:checked {{
                 background-color: {colors["brand_light_blue"]};
@@ -271,3 +322,13 @@ class StyleManager:
         effect.setOffset(QPointF(settings.offset_x, settings.offset_y))
         effect.setColor(color)
         widget.setGraphicsEffect(effect)
+
+    def apply_interaction_defaults(self, root: QWidget) -> None:
+        """Apply centralized pointer feedback to current and future buttons."""
+        application = QApplication.instance()
+        if application is None:
+            raise RuntimeError("Se requiere QApplication para configurar cursores.")
+        cursor_filter = _ClickableCursorFilter(root)
+        application.installEventFilter(cursor_filter)
+        cursor_filter.refresh_all()
+        self._clickable_cursor_filter = cursor_filter

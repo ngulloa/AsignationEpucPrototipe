@@ -41,11 +41,12 @@ def test_shared_json_contains_only_allowlisted_nonpersonal_fields(
             source_screen="academic_form",
             category="validation",
             error_code="INVALID_RUT",
+            description="El formulario rechazó un dato ficticio.",
         )
     )
 
     document = json.loads(paths.error_notifications_path.read_text(encoding="utf-8"))
-    assert document["schema_version"] == 2
+    assert document["schema_version"] == 3
     assert len(document["notifications"]) == 1
     record = document["notifications"][0]
     assert set(record) == NOTIFICATION_FIELDS
@@ -53,7 +54,6 @@ def test_shared_json_contains_only_allowlisted_nonpersonal_fields(
     for forbidden in (
         "owner",
         "username",
-        "description",
         "detail",
         "email",
         "traceback",
@@ -67,19 +67,21 @@ def test_shared_json_contains_only_allowlisted_nonpersonal_fields(
     ("notification", "message"),
     (
         (
-            ErrorNotification("local/path", "unexpected", "OTHER_ERROR"),
+            ErrorNotification(
+                "local/path", "unexpected", "OTHER_ERROR", "Falla ficticia."
+            ),
             "Pantalla",
         ),
         (
-            ErrorNotification("menu", "texto libre", "OTHER_ERROR"),
+            ErrorNotification("menu", "texto libre", "OTHER_ERROR", "Falla ficticia."),
             "Categoría",
         ),
         (
-            ErrorNotification("menu", "unexpected", "FREE_TEXT"),
+            ErrorNotification("menu", "unexpected", "FREE_TEXT", "Falla ficticia."),
             "Código",
         ),
         (
-            ErrorNotification("menu", "validation", "OTHER_ERROR"),
+            ErrorNotification("menu", "validation", "OTHER_ERROR", "Falla ficticia."),
             "corresponde",
         ),
     ),
@@ -104,7 +106,7 @@ def test_repository_rejects_extra_shared_fields(tmp_path: Path) -> None:
     paths = ProjectPaths(tmp_path)
     repository = JsonErrorNotificationRepository(paths)
     invalid = {
-        "schema_version": 2,
+        "schema_version": 3,
         "notifications": [
             {
                 "notification_id": str(uuid4()),
@@ -113,7 +115,8 @@ def test_repository_rejects_extra_shared_fields(tmp_path: Path) -> None:
                 "category": "unexpected",
                 "error_code": "OTHER_ERROR",
                 "status": "new",
-                "description": "texto libre no autorizado",
+                "description": "Descripción segura.",
+                "extra": "campo no autorizado",
             }
         ],
     }
@@ -184,7 +187,7 @@ def test_legacy_migration_drops_personal_and_free_text_on_temporary_file(
 
     migrated = json.loads(path.read_text(encoding="utf-8"))
     assert migrated == {
-        "schema_version": 2,
+        "schema_version": 3,
         "notifications": [
             {
                 "notification_id": legacy_id,
@@ -193,6 +196,9 @@ def test_legacy_migration_drops_personal_and_free_text_on_temporary_file(
                 "category": "persistence",
                 "error_code": "SAVE_ERROR",
                 "status": "new",
+                "description": (
+                    "Descripción histórica omitida durante la migración por privacidad."
+                ),
             }
         ],
     }

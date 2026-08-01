@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
 
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QSize, Slot
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QStackedWidget, QWidget
 
 from backend.contracts import (
@@ -13,7 +14,8 @@ from backend.contracts import (
     AcademicRecord,
     SubmissionResult,
 )
-from frontend.contracts import SessionPresentation
+from frontend.async_worker import AsyncOperation
+from frontend.contracts import SessionPresentation, ShareTableRequest, UiResult
 from frontend.controller import FrontendController
 from frontend.navigation import (
     ACADEMIC_FORM_SCREEN,
@@ -61,11 +63,20 @@ class MainWindow(QMainWindow):
         self.controller = controller
         self._submit_callback = submit_callback or self.controller.submit_academic
         self._academics_provider = academics_provider or self.controller.list_academics
+        self.academic_catalogs = self.controller.academic_catalogs()
         self.settings = settings
         self.style_manager = StyleManager(self.settings.visual)
         self._session = SessionPresentation("", False, False)
         self._error_return_screen = LOGIN_SCREEN
         self._editing_shared_table = False
+        self._editing_shared_table_number: int | None = None
+        self._public_operation = AsyncOperation(self)
+        self._public_operation.progress.connect(self._public_publish_progress)
+        self._public_operation.succeeded.connect(self._public_publish_complete)
+        self._public_operation.failed.connect(self._public_publish_failed)
+        self._public_operation.finished.connect(
+            lambda: self.academics_list_view.set_publication_busy(False)
+        )
         self._last_reference_size: QSize | None = None
         self.setObjectName("appRoot")
         self.setWindowTitle(self.settings.texts.application_name)
@@ -94,6 +105,7 @@ class MainWindow(QMainWindow):
         self.academic_form_view = AcademicFormView(
             self.settings,
             self.style_manager,
+            self.academic_catalogs,
             self._submit_callback,
             update_callback=self.controller.update_academic,
         )
@@ -101,6 +113,7 @@ class MainWindow(QMainWindow):
             self.settings,
             self.style_manager,
             self.controller.approve_user,
+            self.controller.withdraw_approval,
         )
         self.error_notification_view = ErrorNotificationView(
             self.settings,
@@ -112,7 +125,11 @@ class MainWindow(QMainWindow):
             self.style_manager,
             self.controller.run_update,
         )
-        self.alerts_view = AlertsView(self.settings, self.style_manager)
+        self.alerts_view = AlertsView(
+            self.settings,
+            self.style_manager,
+            self.controller.mark_alert_seen,
+        )
         self._views = {
             LOGIN_SCREEN: self.login_view,
             REGISTER_SCREEN: self.register_view,
@@ -127,6 +144,7 @@ class MainWindow(QMainWindow):
         for view in self._views.values():
             self.stack.addWidget(view)
 
+        self.style_manager.apply_interaction_defaults(self)
         self._connect_navigation()
         self.main_menu_view.set_session("", is_owner=False)
         self._show_screen(LOGIN_SCREEN, force_reference_size=True)
@@ -156,6 +174,16 @@ class MainWindow(QMainWindow):
         self.academics_list_view.edit_requested.connect(self.show_academic_edit)
         self.academics_list_view.shared_edit_requested.connect(
             self.show_shared_academic_edit
+        )
+        self.academics_list_view.share_requested.connect(self.share_table)
+        self.academics_list_view.public_rename_requested.connect(
+            self.rename_public_table
+        )
+        self.academics_list_view.public_publish_requested.connect(
+            self.publish_shared_table
+        )
+        self.academics_list_view.public_draft_cancel_requested.connect(
+            self.cancel_shared_table_draft
         )
         self.academic_form_view.cancel_requested.connect(self.show_academics_list)
         self.academic_form_view.submission_succeeded.connect(
@@ -204,7 +232,31 @@ class MainWindow(QMainWindow):
     def show_academics_list(self) -> None:
         self._reload_academics()
         self._reload_shared_tables()
+        try:
+            self.academics_list_view.set_private_table_name(
+                self.controller.private_table_name()
+            )
+        except RuntimeError as error:
+            self.academics_list_view.show_result(str(error), success=False)
         self._show_screen(ACADEMIC_LIST_SCREEN)
+
+    def share_table(self, name: str) -> None:
+        result = self.controller.share_table(ShareTableRequest(name))
+        self.academics_list_view.show_result(
+            result.message,
+            success=result.success,
+        )
+        if result.success:
+            self._reload_shared_tables()
+
+    def rename_public_table(self, table_number: int, name: str) -> None:
+        result = self.controller.rename_public_table(table_number, name)
+        self.academics_list_view.show_result(
+            result.message,
+            success=result.success,
+        )
+        if result.success:
+            self._reload_shared_tables()
 
     def _reload_shared_tables(self) -> str | None:
         try:
@@ -219,11 +271,13 @@ class MainWindow(QMainWindow):
 
     def show_academic_form(self) -> None:
         self._editing_shared_table = False
+        self._editing_shared_table_number = None
         self.academic_form_view.prepare_new()
         self._show_screen(ACADEMIC_FORM_SCREEN)
 
     def show_academic_edit(self, record: AcademicRecord) -> None:
         self._editing_shared_table = False
+        self._editing_shared_table_number = None
         self.academic_form_view.prepare_edit(record)
         self._show_screen(ACADEMIC_FORM_SCREEN)
 
@@ -233,6 +287,7 @@ class MainWindow(QMainWindow):
         record: AcademicRecord,
     ) -> None:
         self._editing_shared_table = True
+        self._editing_shared_table_number = table_number
 
         def update_shared(
             academic_id: str,
@@ -244,7 +299,11 @@ class MainWindow(QMainWindow):
                 data,
             )
 
-        self.academic_form_view.prepare_edit(record, update_callback=update_shared)
+        self.academic_form_view.prepare_edit(
+            record,
+            update_callback=update_shared,
+            publication=True,
+        )
         self._show_screen(ACADEMIC_FORM_SCREEN)
 
     def show_approvals(self) -> None:
@@ -357,6 +416,51 @@ class MainWindow(QMainWindow):
                 f"{message} {listing_error}", success=False
             )
         self._show_screen(ACADEMIC_LIST_SCREEN)
+        if self._editing_shared_table and self._editing_shared_table_number is not None:
+            self.publish_shared_table(self._editing_shared_table_number)
+
+    def publish_shared_table(self, table_number: int) -> None:
+        if self._public_operation.active:
+            return
+        self.academics_list_view.set_publication_busy(True)
+        if not self._public_operation.start(
+            lambda: self.controller.publish_shared_table(table_number)
+        ):
+            self.academics_list_view.set_publication_busy(False)
+
+    @Slot(object)
+    def _public_publish_complete(self, result: object) -> None:
+        if not isinstance(result, UiResult):
+            self._public_publish_failed("La respuesta de publicación es inválida.")
+            return
+        self._reload_shared_tables()
+        self.academics_list_view.set_publication_busy(True)
+        self.academics_list_view.show_result(result.message, success=result.success)
+
+    @Slot(str)
+    def _public_publish_progress(self, message: str) -> None:
+        self.academics_list_view.show_result(message, success=True)
+
+    @Slot(str)
+    def _public_publish_failed(self, message: str) -> None:
+        self._reload_shared_tables()
+        self.academics_list_view.set_publication_busy(True)
+        self.academics_list_view.show_result(message, success=False)
+
+    def cancel_shared_table_draft(self, table_number: int) -> None:
+        if self._public_operation.active:
+            return
+        result = self.controller.cancel_shared_table_draft(table_number)
+        self._reload_shared_tables()
+        self.academics_list_view.show_result(result.message, success=result.success)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        update_closed = self.update_view.close_worker()
+        publication_closed = self._public_operation.shutdown()
+        if not (update_closed and publication_closed):
+            event.ignore()
+            return
+        super().closeEvent(event)
 
 
 def build_frontend_window(

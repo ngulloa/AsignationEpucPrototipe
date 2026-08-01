@@ -3,10 +3,22 @@
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+def _default_project_root() -> Path:
+    source_root = Path(__file__).resolve().parents[1]
+    if (source_root / "config" / "frontend_texts.json").is_file():
+        return source_root
+    installed_root = Path(sys.prefix).resolve()
+    if (installed_root / "config" / "frontend_texts.json").is_file():
+        return installed_root
+    return source_root
+
+
+PROJECT_ROOT = _default_project_root()
 
 _SAFE_USERNAME = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{0,30}[a-z0-9])?$", re.ASCII)
 _WINDOWS_RESERVED_NAMES = {
@@ -112,12 +124,20 @@ class ProjectPaths:
         return self.public_data_dir / "tables"
 
     @property
-    def error_notifications_path(self) -> Path:
-        return self.public_data_dir / "notifications_error.json"
+    def academic_catalogs_dir(self) -> Path:
+        return self.public_data_dir / "catalogs"
 
     @property
-    def operational_academics_path(self) -> Path:
-        return self.root / "data" / "Academic.csv"
+    def academic_staff_catalog_path(self) -> Path:
+        return self.academic_catalogs_dir / "academic_staff.csv"
+
+    @property
+    def academic_profiles_catalog_path(self) -> Path:
+        return self.academic_catalogs_dir / "academic_profiles.csv"
+
+    @property
+    def error_notifications_path(self) -> Path:
+        return self.public_data_dir / "notifications_error.json"
 
     def user_dir(self, username: str) -> Path:
         return self.users_dir / normalize_username(username)
@@ -128,17 +148,45 @@ class ProjectPaths:
     def personal_academics_path(self, username: str) -> Path:
         return self.user_dir(username) / "tables" / "academics.csv"
 
+    def personal_academic_appointments_path(self, username: str) -> Path:
+        return self.user_dir(username) / "tables" / "academic_appointments.csv"
+
+    def personal_table_metadata_path(self, username: str) -> Path:
+        return self.user_dir(username) / "tables" / "table_metadata.json"
+
     def personal_outbox_dir(self, username: str) -> Path:
         return self.user_dir(username) / "outbox"
 
     def personal_error_queue_path(self, username: str) -> Path:
         return self.personal_outbox_dir(username) / "error_notifications.json"
 
+    def personal_share_intent_path(self, username: str) -> Path:
+        return self.personal_outbox_dir(username) / "table_share.json"
+
+    def publication_operations_dir(self, username: str) -> Path:
+        return self.personal_outbox_dir(username) / "publications"
+
+    def publication_operation_dir(self, username: str, operation_id: str) -> Path:
+        return self.publication_operations_dir(username) / _path_component(
+            operation_id,
+            label="operation_id",
+        )
+
     def notifications_seen_path(self, username: str) -> Path:
         return self.user_dir(username) / "notifications_seen.json"
 
     def shared_table_path(self, filename: str) -> Path:
         return self.public_tables_dir / _path_component(filename, label="filename")
+
+    def academic_appointments_path(self, academics_path: Path) -> Path:
+        """Derive a sidecar from a canonical academic path, never a visible name."""
+        resolved = academics_path.expanduser().resolve(strict=False)
+        if resolved.name == "academics.csv":
+            return resolved.with_name("academic_appointments.csv")
+        return resolved.with_name(f"{resolved.stem}.appointments.csv")
+
+    def shared_appointments_path(self, filename: str) -> Path:
+        return self.academic_appointments_path(self.shared_table_path(filename))
 
 
 DEFAULT_PATHS = ProjectPaths(PROJECT_ROOT)

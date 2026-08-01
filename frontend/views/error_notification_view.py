@@ -10,12 +10,16 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QPushButton,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
+from backend.academic_service import DUPLICATE_RUT_MESSAGE
+from backend.system_contracts import DESCRIPTION_PRIVACY_WARNING
 from frontend.contracts import ErrorNotificationRequest, UiResult
 from frontend.navigation import FrontendRoute
 from frontend.settings import ApplicationSettings
@@ -32,7 +36,7 @@ NotificationCallback = Callable[[ErrorNotificationRequest], UiResult]
 ROUTE: Final = FrontendRoute.ERROR_NOTIFICATION
 ERROR_OPTIONS: Final = (
     ("Error al guardar.", "persistence", "SAVE_ERROR"),
-    ("Rut ya registrado.", "validation", "DUPLICATE_RUT"),
+    (DUPLICATE_RUT_MESSAGE, "validation", "DUPLICATE_RUT"),
     ("Rut inválido.", "validation", "INVALID_RUT"),
     ("Error de autenticación.", "authentication", "AUTH_ERROR"),
     ("Error de actualización.", "synchronization", "UPDATE_ERROR"),
@@ -106,6 +110,19 @@ class ErrorNotificationView(QWidget):
         form.addRow(
             self.settings.texts.field_labels["error_type"], self.error_type_combo
         )
+        description_box = QVBoxLayout()
+        description_box.setSpacing(spacing["extra_small"])
+        self.description_input = QTextEdit()
+        self.description_input.setMaximumHeight(150)
+        self.description_input.setPlaceholderText(
+            "Describa qué ocurrió y qué esperaba que sucediera."
+        )
+        description_box.addWidget(self.description_input)
+        self.description_warning = QLabel(DESCRIPTION_PRIVACY_WARNING)
+        self.description_warning.setObjectName("helperText")
+        self.description_warning.setWordWrap(True)
+        description_box.addWidget(self.description_warning)
+        form.addRow("Descripción", description_box)
         panel_layout.addLayout(form)
         panel_layout.addStretch()
         self.result_label = ResultBanner()
@@ -138,6 +155,7 @@ class ErrorNotificationView(QWidget):
             labels.index(normalized) if normalized in labels else len(labels) - 1
         )
         self.result_label.clear_result()
+        self.description_input.clear()
         if normalized:
             self._latest_error = normalized
 
@@ -148,6 +166,7 @@ class ErrorNotificationView(QWidget):
                 source_screen=self._source_screen,
                 category=str(category),
                 error_code=str(code),
+                description=self.description_input.toPlainText(),
             )
         )
         self.result_label.present(result.message, success=result.success)

@@ -21,11 +21,12 @@
     "assignments": "Asignaciones",
     "open_academics": "Académicos",
     "courses": "Cursos",
-    "add_academic": "Agregar académico",
+    "add_academic": "Agregar",
     "back_to_menu": "Volver al menú",
     "edit": "Editar",
     "delete": "Borrar",
     "cancel": "Cancelar",
+    "overwrite": "Sobrescribir",
     "save": "Guardar",
     "login": "Iniciar sesión",
     "create_account": "Crear cuenta",
@@ -34,6 +35,7 @@
     "logout": "Cerrar sesión",
     "notify_error": "Notificar error",
     "approvals": "Administrar aprobaciones",
+    "owner_approvals": "Aprobar",
     "update": "Actualizar aplicación",
     "run_update": "Actualizar",
     "alerts": "Visualizar alertas",
@@ -79,7 +81,7 @@
     "login_error": "Error de autenticación.",
     "save_error": "Error al guardar.",
     "update_error": "Error de actualización.",
-    "duplicate_rut": "Rut ya registrado.",
+    "duplicate_rut": "RUT ya existe. Se sobrescribirán los datos del académico.",
     "invalid_rut": "Rut inválido.",
     "personal_table": "Tabla personal",
     "shared_tables": "Tablas compartidas",
@@ -100,33 +102,6 @@
     "academic_printing": "La impresión de académicos se implementará en una etapa posterior.",
     "persistence": "La persistencia se implementará en una etapa posterior."
   },
-  "catalogs": {
-    "plant": {
-      "values": [
-        "Ordinaria",
-        "Mixta"
-      ],
-      "provisional": true,
-      "note": "Valores observados en el prototipo; no representan validez normativa aprobada."
-    },
-    "profile": {
-      "values": [
-        "Mixto",
-        "Docente",
-        "Investigador"
-      ],
-      "provisional": true,
-      "note": "Valores observados en el prototipo; catálogo institucional definitivo pendiente."
-    },
-    "status": {
-      "values": [
-        "Activo",
-        "Sabático"
-      ],
-      "provisional": true,
-      "note": "Valores observados en el prototipo; catálogo institucional definitivo pendiente."
-    }
-  },
   "working_hours": {
     "status": "pending",
     "unit": null,
@@ -139,6 +114,6 @@
   },
   "wireframe_notes": {
     "spelling_correction": "El wireframe muestra “acádemicos”; los textos de ejecución usan “académicos”.",
-    "catalog_scope": "Los catálogos reproducen observaciones visuales y permanecen provisionales."
+    "catalog_scope": "Los catálogos académicos se definen y validan en el backend; los cuatro estados son una decisión provisional del MVP."
   }
 }

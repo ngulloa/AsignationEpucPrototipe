@@ -10,7 +10,6 @@ import pytest
 
 from frontend.settings import (
     SettingsValidationError,
-    parse_text_parameters,
     parse_visual_settings,
 )
 from persistence.paths import DEFAULT_PATHS
@@ -47,8 +46,10 @@ def test_loads_both_valid_json_documents() -> None:
     assert settings.visual.screens["academic_form"].height == 768
     assert settings.visual.validation_viewport.height == 768
     assert settings.texts.application_name
-    assert settings.texts.catalogs["plant"].provisional is True
-    assert settings.texts.catalogs["status"].values == ("Activo", "Sabático")
+    assert settings.texts.button_labels["add_academic"] == "Agregar"
+    assert settings.texts.button_labels["owner_approvals"] == "Aprobar"
+    assert settings.texts.button_labels["approvals"] == "Administrar aprobaciones"
+    assert settings.texts.button_labels["overwrite"] == "Sobrescribir"
     assert settings.texts.working_hours.unit is None
     assert settings.texts.working_hours.required is None
 
@@ -122,30 +123,10 @@ def test_nonpositive_dimension_is_rejected(tmp_path: Path) -> None:
         parse_visual_settings(_read_document(path))
 
 
-def test_empty_catalog_is_rejected(tmp_path: Path) -> None:
+def test_frontend_texts_do_not_duplicate_backend_academic_catalogs() -> None:
     document = _read_document(DEFAULT_PARAMETERS_PATH)
-    catalogs = document["catalogs"]
-    assert isinstance(catalogs, dict)
-    plant = catalogs["plant"]
-    assert isinstance(plant, dict)
-    plant["values"] = []
-    path = _write_document(tmp_path / "empty-catalog.json", document)
 
-    with pytest.raises(SettingsValidationError, match="no puede estar vacía"):
-        parse_text_parameters(_read_document(path))
-
-
-def test_duplicate_catalog_value_is_rejected(tmp_path: Path) -> None:
-    document = _read_document(DEFAULT_PARAMETERS_PATH)
-    catalogs = document["catalogs"]
-    assert isinstance(catalogs, dict)
-    profile = catalogs["profile"]
-    assert isinstance(profile, dict)
-    profile["values"] = ["Mixto", "Mixto"]
-    path = _write_document(tmp_path / "duplicate-catalog.json", document)
-
-    with pytest.raises(SettingsValidationError, match="duplicados"):
-        parse_text_parameters(_read_document(path))
+    assert "catalogs" not in document
 
 
 def test_missing_nested_value_does_not_receive_a_silent_default(

@@ -75,15 +75,6 @@ class VisualSettings:
 
 
 @dataclass(frozen=True, slots=True)
-class CatalogSettings:
-    """A provisional catalog observed in the visual prototype."""
-
-    values: tuple[str, ...]
-    provisional: bool
-    note: str
-
-
-@dataclass(frozen=True, slots=True)
 class PendingRange:
     """An intentionally undefined numeric range."""
 
@@ -104,7 +95,7 @@ class WorkingHoursSettings:
 
 @dataclass(frozen=True, slots=True)
 class TextParameters:
-    """Validated visible texts, provisional catalogs and pending decisions."""
+    """Validated visible texts and pending product decisions."""
 
     schema_version: int
     application_name: str
@@ -115,7 +106,6 @@ class TextParameters:
     table_headers: tuple[str, ...]
     messages: Mapping[str, str]
     out_of_scope_function_texts: Mapping[str, str]
-    catalogs: Mapping[str, CatalogSettings]
     working_hours: WorkingHoursSettings
     wireframe_notes: Mapping[str, str]
 
@@ -473,46 +463,6 @@ def parse_visual_settings(values: Mapping[str, object]) -> VisualSettings:
     )
 
 
-def _parse_catalog(value: object, location: str) -> CatalogSettings:
-    values = _require_object(value, location)
-    catalog_values = _parse_string_list(
-        _required(values, "values", location),
-        f"{location}.values",
-        reject_duplicates=True,
-    )
-    provisional = _require_bool(
-        _required(values, "provisional", location),
-        f"{location}.provisional",
-    )
-    if not provisional:
-        raise _validation_error(
-            f"{location}.provisional",
-            "los catálogos de esta etapa deben permanecer provisionales",
-        )
-    note = _require_string(
-        _required(values, "note", location),
-        f"{location}.note",
-    )
-    return CatalogSettings(
-        values=catalog_values,
-        provisional=provisional,
-        note=note,
-    )
-
-
-def _parse_catalogs(value: object, location: str) -> Mapping[str, CatalogSettings]:
-    values = _require_object(value, location)
-    required_catalogs = ("plant", "profile", "status")
-    catalogs = {
-        name: _parse_catalog(
-            _required(values, name, location),
-            f"{location}.{name}",
-        )
-        for name in required_catalogs
-    }
-    return _immutable_mapping(catalogs)
-
-
 def _parse_working_hours(value: object, location: str) -> WorkingHoursSettings:
     values = _require_object(value, location)
     status = _require_string(
@@ -592,10 +542,6 @@ def parse_text_parameters(values: Mapping[str, object]) -> TextParameters:
         out_of_scope_function_texts=_parse_string_mapping(
             _required(values, "out_of_scope_function_texts", location),
             f"{location}.out_of_scope_function_texts",
-        ),
-        catalogs=_parse_catalogs(
-            _required(values, "catalogs", location),
-            f"{location}.catalogs",
         ),
         working_hours=_parse_working_hours(
             _required(values, "working_hours", location),

@@ -1,6 +1,6 @@
 # ADR-001: CSV operacional de académicos
 
-- Estado: aceptada
+- Estado: reemplazada por ADR-002 y ADR-004
 - Fecha: 2026-07-30
 - Alcance: primera versión funcional del MVP
 

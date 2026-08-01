@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from backend.contracts import AcademicRecord
+from backend.contracts import AcademicAggregate, AcademicRecord
 
 
 class AcademicRepositoryError(RuntimeError):
@@ -17,6 +17,10 @@ class AcademicRepositorySchemaError(AcademicRepositoryError):
 
 class AcademicRepositoryIOError(AcademicRepositoryError):
     """An operating-system or encoding error prevented repository access."""
+
+
+class AcademicMigrationRequiredError(AcademicRepositorySchemaError):
+    """A readable legacy row must be corrected before conversion to v2."""
 
 
 class AcademicRepository(Protocol):
@@ -40,4 +44,12 @@ class AcademicRepository(Protocol):
 
     def replace_all(self, records: list[AcademicRecord]) -> None:
         """Atomically replace all records after validating the schema."""
+        ...
+
+    def list_aggregates(self) -> list[AcademicAggregate]:
+        """Return identities with their complete appointment histories."""
+        ...
+
+    def replace_aggregates(self, aggregates: list[AcademicAggregate]) -> None:
+        """Atomically replace the complete two-file dataset."""
         ...

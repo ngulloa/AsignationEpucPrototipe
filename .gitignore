@@ -24,8 +24,13 @@ dist/
 *.log
 *.tmp
 *.temp
+*.bak
+*.backup
+*.orig
+*.rej
 tmp/
 temp/
+backups/
 data/*.tmp
 data/*.bak
 users/
@@ -41,6 +46,8 @@ credentials/
 *.swo
 *~
 screenshots/
+.codex/
+project_state*
 
 !data/public/approved_users.json
 !data/public/tables_index.json

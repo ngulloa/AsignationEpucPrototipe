@@ -11,10 +11,14 @@ from backend.academic_repository import (
     AcademicRepositoryIOError,
     AcademicRepositorySchemaError,
 )
-from backend.contracts import AcademicRecord
+from backend.academic_service import PERSISTENCE_ERROR_MESSAGE, AcademicService
+from backend.contracts import AcademicFormData, AcademicRecord
 from persistence.csv_academic_repository import (
+    ACADEMIC_APPOINTMENT_CSV_FIELDS,
     ACADEMIC_CSV_FIELDS,
+    ACADEMIC_V2_CSV_FIELDS,
     CsvAcademicRepository,
+    deterministic_legacy_appointment_id,
 )
 
 
@@ -49,7 +53,10 @@ def test_missing_file_and_parent_are_created_with_exact_header(
     assert repository.list_all() == []
     assert path.exists()
     assert path.read_text(encoding="utf-8").splitlines() == [
-        ",".join(ACADEMIC_CSV_FIELDS)
+        ",".join(ACADEMIC_V2_CSV_FIELDS)
+    ]
+    assert repository.appointments_path.read_text(encoding="utf-8").splitlines() == [
+        ",".join(ACADEMIC_APPOINTMENT_CSV_FIELDS)
     ]
 
 
@@ -204,6 +211,39 @@ def test_success_leaves_no_temporary_files(tmp_path: Path) -> None:
     assert _temporary_files(tmp_path) == []
 
 
+def test_duplicate_overwrite_failure_preserves_the_previous_csv_record(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "Academic.csv"
+    repository = CsvAcademicRepository(path)
+    existing = _record()
+    repository.add(existing)
+    service = AcademicService(repository)
+    form = AcademicFormData(
+        name="Datos sintéticos reemplazados",
+        rut=" 12.345.678 - 5 ",
+        plant="Ordinaria",
+        profile="Mixto",
+        weekly_hours=20,
+        status="Inactivo",
+    )
+    warning = service.register_academic(form)
+    assert warning.duplicate_confirmation is not None
+    original = path.read_bytes()
+
+    def fail_replace(_source: object, _destination: object) -> None:
+        raise OSError("fallo atómico controlado")
+
+    monkeypatch.setattr(os, "replace", fail_replace)
+    result = service.register_academic(form, warning.duplicate_confirmation)
+
+    assert result.message == PERSISTENCE_ERROR_MESSAGE
+    assert path.read_bytes() == original
+    assert repository.list_all() == [existing]
+    assert _temporary_files(tmp_path) == []
+
+
 def test_find_by_rut_canonicalizes_dots_spaces_and_lowercase_k(
     tmp_path: Path,
 ) -> None:
@@ -213,6 +253,65 @@ def test_find_by_rut_canonicalizes_dots_spaces_and_lowercase_k(
 
     assert repository.find_by_rut(" 40.000.000-k ") == expected
     assert repository.find_by_rut("sin-estructura") is None
+
+
+def test_recognizable_legacy_catalog_values_are_normalized_only_on_read(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "Academic.csv"
+    path.write_text(
+        ",".join(ACADEMIC_CSV_FIELDS)
+        + "\nlegacy-1,12345678-5,Persona sintética,Mixta,Estandar,20,Sabatico\n",
+        encoding="utf-8",
+    )
+    original = path.read_bytes()
+
+    loaded = CsvAcademicRepository(path).list_all()[0]
+
+    assert (loaded.plant, loaded.profile, loaded.status) == (
+        "Especial",
+        "Standard",
+        "Sabático",
+    )
+    assert path.read_bytes() == original
+
+
+def test_historical_incompatible_combination_remains_readable_and_unchanged(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "Academic.csv"
+    path.write_text(
+        ",".join(ACADEMIC_CSV_FIELDS)
+        + "\nlegacy-2,12345678-5,Persona sintética,Ordinaria,Docente,20,Activo\n",
+        encoding="utf-8",
+    )
+    original = path.read_bytes()
+
+    loaded = CsvAcademicRepository(path).list_all()[0]
+
+    assert (loaded.plant, loaded.profile) == ("Ordinaria", "Docente")
+    assert path.read_bytes() == original
+
+
+def test_historical_incompatible_row_can_be_corrected_before_v2_write(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "Academic.csv"
+    path.write_text(
+        ",".join(ACADEMIC_CSV_FIELDS)
+        + "\nlegacy-2,12345678-5,Persona sintética,Ordinaria,Docente,20,Activo\n",
+        encoding="utf-8",
+    )
+    repository = CsvAcademicRepository(path)
+    corrected = _record("legacy-2")
+
+    repository.update(corrected)
+
+    assert repository.dataset_version() == 2
+    assert repository.list_all() == [corrected]
+    assert repository.list_aggregates()[0].appointments[0].appointment_id == (
+        deterministic_legacy_appointment_id("legacy-2")
+    )
 
 
 def test_invalid_utf8_is_reported_as_repository_error(tmp_path: Path) -> None:

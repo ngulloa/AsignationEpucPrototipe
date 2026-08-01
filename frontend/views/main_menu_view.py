@@ -145,9 +145,12 @@ class MainMenuView(QWidget):
     ) -> None:
         self.header.username_label.setText(username)
         self.header.username_label.setVisible(bool(username))
-        self.approvals_button.setVisible(
-            is_owner if can_approve is None else can_approve
+        self.approvals_button.setText(
+            self.settings.texts.button_labels[
+                "owner_approvals" if is_owner else "approvals"
+            ]
         )
+        self.approvals_button.setVisible(bool(username))
         self.alerts_button.setVisible(is_owner)
 
     @staticmethod
