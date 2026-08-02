@@ -19,6 +19,10 @@ class AcademicRepositoryIOError(AcademicRepositoryError):
     """An operating-system or encoding error prevented repository access."""
 
 
+class AcademicRepositoryNotFoundError(AcademicRepositoryError):
+    """The requested academic record does not exist."""
+
+
 class AcademicRepository(Protocol):
     """Minimal persistence operations required by the academic use cases."""
 
@@ -36,6 +40,10 @@ class AcademicRepository(Protocol):
 
     def update(self, record: AcademicRecord) -> None:
         """Replace the record with the same stable identifier."""
+        ...
+
+    def delete(self, academic_id: str) -> None:
+        """Delete the record matching one stable identifier."""
         ...
 
     def replace_all(self, records: list[AcademicRecord]) -> None:

@@ -132,6 +132,7 @@ class MainWindow(QMainWindow):
         self.academics_list_view.menu_requested.connect(self.show_main_menu)
         self.academics_list_view.add_requested.connect(self.show_academic_form)
         self.academics_list_view.edit_requested.connect(self.show_academic_edit)
+        self.academics_list_view.delete_requested.connect(self._delete_academic)
         self.academic_form_view.cancel_requested.connect(self.show_academics_list)
         self.academic_form_view.submission_succeeded.connect(
             self._handle_submission_success
@@ -220,6 +221,7 @@ class MainWindow(QMainWindow):
         *,
         force_reference_size: bool = False,
     ) -> None:
+        self.academics_list_view.reset_delete_confirmation()
         dimensions = self.settings.visual.screens[screen_name]
         reference_size = QSize(dimensions.width, dimensions.height)
         follows_reference = (
@@ -254,6 +256,22 @@ class MainWindow(QMainWindow):
                 success=False,
             )
         self._show_screen(ACADEMIC_LIST_SCREEN)
+
+    @Slot(str)
+    def _delete_academic(self, academic_id: str) -> None:
+        result = self.controller.delete_academic(academic_id)
+        if not result.success:
+            self.academics_list_view.reset_delete_confirmation()
+            self.academics_list_view.show_result(result.message, success=False)
+            return
+        listing_error = self._reload_academics()
+        if listing_error is None:
+            self.academics_list_view.show_result(result.message, success=True)
+        else:
+            self.academics_list_view.show_result(
+                f"{result.message} {listing_error}",
+                success=False,
+            )
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self._sync_operation.active:

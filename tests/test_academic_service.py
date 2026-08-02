@@ -7,8 +7,14 @@ from uuid import UUID
 
 import pytest
 
-from backend.academic_repository import AcademicRepositoryIOError
+from backend.academic_repository import (
+    AcademicRepositoryIOError,
+    AcademicRepositoryNotFoundError,
+)
 from backend.academic_service import (
+    DELETE_NOT_FOUND_MESSAGE,
+    DELETE_PERSISTENCE_ERROR_MESSAGE,
+    DELETE_SUCCESS_MESSAGE,
     DUPLICATE_RUT_MESSAGE,
     INCOMPATIBLE_PLANT_PROFILE_MESSAGE,
     INVALID_RUT_MESSAGE,
@@ -38,6 +44,7 @@ class MemoryAcademicRepository:
         self.find_calls: list[str] = []
         self.add_calls: list[AcademicRecord] = []
         self.update_calls: list[AcademicRecord] = []
+        self.delete_calls: list[str] = []
         self.list_calls = 0
 
     def list_all(self) -> list[AcademicRecord]:
@@ -68,6 +75,16 @@ class MemoryAcademicRepository:
             if existing.academic_id == record.academic_id
         )
         self.records[index] = record
+
+    def delete(self, academic_id: str) -> None:
+        self.delete_calls.append(academic_id)
+        if self.fail_on == "delete":
+            raise AcademicRepositoryIOError("detalle técnico de eliminación")
+        for index, existing in enumerate(self.records):
+            if existing.academic_id == academic_id:
+                del self.records[index]
+                return
+        raise AcademicRepositoryNotFoundError("registro inexistente")
 
 
 @pytest.fixture
@@ -415,3 +432,40 @@ def test_name_and_hours_policy_remains_out_of_scope() -> None:
     assert result.success is True
     assert repository.records[0].name == ""
     assert repository.records[0].weekly_hours == -999
+
+
+def test_delete_uses_stable_identifier_and_preserves_other_records() -> None:
+    first = _record(academic_id="stable-first")
+    selected = _record(academic_id="stable-selected", rut="40000000-K")
+    repository = MemoryAcademicRepository([first, selected])
+
+    result = AcademicService(repository).delete_academic(selected.academic_id)
+
+    assert result.success is True
+    assert result.message == DELETE_SUCCESS_MESSAGE
+    assert repository.delete_calls == [selected.academic_id]
+    assert repository.records == [first]
+
+
+def test_delete_missing_record_returns_controlled_failure() -> None:
+    repository = MemoryAcademicRepository([_record()])
+
+    result = AcademicService(repository).delete_academic("missing-stable-id")
+
+    assert result.success is False
+    assert result.message == DELETE_NOT_FOUND_MESSAGE
+    assert repository.records == [_record()]
+
+
+def test_delete_persistence_error_returns_controlled_failure(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    existing = _record()
+    repository = MemoryAcademicRepository([existing], fail_on="delete")
+
+    result = AcademicService(repository).delete_academic(existing.academic_id)
+
+    assert result.success is False
+    assert result.message == DELETE_PERSISTENCE_ERROR_MESSAGE
+    assert repository.records == [existing]
+    assert "detalle técnico de eliminación" in caplog.text

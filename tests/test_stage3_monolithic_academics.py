@@ -5,6 +5,9 @@ from __future__ import annotations
 import inspect
 from pathlib import Path
 
+import pytest
+
+from backend.application_service import AuthenticationRequiredError
 from backend.composition import build_application_service
 from backend.contracts import AcademicFormData
 from persistence.csv_academic_repository import CsvAcademicRepository
@@ -55,6 +58,31 @@ def test_productive_flow_creates_only_the_authoritative_academic_file(
     csv_paths = sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*.csv"))
     assert csv_paths == [Path("data/public/tables/Academic.csv")]
     assert not tuple(tmp_path.rglob("academic_appointments.csv"))
+
+
+def test_productive_add_edit_delete_reload_and_authentication_boundaries(
+    tmp_path: Path,
+) -> None:
+    paths = ProjectPaths(tmp_path)
+    application = build_application_service(paths=paths)
+    application.register_user("synthetic.crud", "1234")
+    assert application.save_academic(_form(name="Primero")).success
+    assert application.save_academic(_form(name="Segundo", rut="40.000.000-K")).success
+    first, second = application.list_academics()
+    assert application.update_academic(
+        first.academic_id,
+        _form(name="Primero editado"),
+    ).success
+
+    assert application.delete_academic(second.academic_id).success
+    reloaded = CsvAcademicRepository(paths.academic_path).list_all()
+
+    assert [record.academic_id for record in reloaded] == [first.academic_id]
+    assert reloaded[0].name == "Primero editado"
+    application.logout()
+    with pytest.raises(AuthenticationRequiredError):
+        application.delete_academic(first.academic_id)
+    assert CsvAcademicRepository(paths.academic_path).list_all() == reloaded
 
 
 def test_csv_repository_contract_has_no_appointments_parameter() -> None:

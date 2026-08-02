@@ -78,6 +78,10 @@ class ApplicationService:
         self._require_session()
         return self._academics.update_academic(academic_id, form_data)
 
+    def delete_academic(self, academic_id: str) -> SubmissionResult:
+        self._require_session()
+        return self._academics.delete_academic(academic_id)
+
     def download_information(self) -> UpdateResult:
         """Safely fast-forward the one shared academic CSV."""
         self._require_session()

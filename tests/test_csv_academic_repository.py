@@ -10,6 +10,7 @@ import pytest
 
 from backend.academic_repository import (
     AcademicRepositoryIOError,
+    AcademicRepositoryNotFoundError,
     AcademicRepositorySchemaError,
 )
 from backend.academic_service import PERSISTENCE_ERROR_MESSAGE, AcademicService
@@ -456,3 +457,70 @@ def test_invalid_utf8_is_reported_without_mutation(tmp_path: Path) -> None:
         CsvAcademicRepository(path).list_all()
 
     assert path.read_bytes() == before
+
+
+def test_delete_by_stable_identifier_preserves_header_order_and_other_records(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "Academic.csv"
+    repository = CsvAcademicRepository(path)
+    first = _record("stable-first")
+    deleted = _record("stable-delete", rut="40000000-K")
+    last = _record("stable-last", rut="11000003-0")
+    repository.replace_all([first, deleted, last])
+
+    repository.delete(deleted.academic_id)
+
+    assert repository.list_all() == [first, last]
+    assert CsvAcademicRepository(path).list_all() == [first, last]
+    persisted = path.read_bytes()
+    assert persisted.startswith(EXACT_HEADER.encode("utf-8"))
+    assert deleted.academic_id.encode("utf-8") not in persisted
+    assert b"\r\n" not in persisted
+
+
+def test_delete_missing_record_preserves_file_unchanged(tmp_path: Path) -> None:
+    repository = CsvAcademicRepository(tmp_path / "Academic.csv")
+    expected = [_record(), _record("stable-second", rut="40000000-K")]
+    repository.replace_all(expected)
+    original = repository.path.read_bytes()
+
+    with pytest.raises(AcademicRepositoryNotFoundError, match="no existe"):
+        repository.delete("missing-stable-id")
+
+    assert repository.path.read_bytes() == original
+    assert repository.list_all() == expected
+
+
+def test_delete_only_record_keeps_a_valid_header_only_csv(tmp_path: Path) -> None:
+    repository = CsvAcademicRepository(tmp_path / "Academic.csv")
+    only_record = _record()
+    repository.add(only_record)
+
+    repository.delete(only_record.academic_id)
+
+    assert repository.path.read_bytes() == EXACT_HEADER.encode("utf-8")
+    assert repository.list_all() == []
+
+
+def test_delete_replace_failure_preserves_original_and_removes_temporary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "Academic.csv"
+    repository = CsvAcademicRepository(path)
+    records = [_record(), _record("stable-second", rut="40000000-K")]
+    repository.replace_all(records)
+    original = path.read_bytes()
+
+    def fail_replace(_source: object, _destination: object) -> None:
+        raise OSError("fallo de reemplazo controlado")
+
+    monkeypatch.setattr(os, "replace", fail_replace)
+
+    with pytest.raises(AcademicRepositoryIOError, match="atómica"):
+        repository.delete(records[0].academic_id)
+
+    assert path.read_bytes() == original
+    assert repository.list_all() == records
+    assert _temporary_files(tmp_path) == []

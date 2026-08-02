@@ -11,6 +11,7 @@ from pathlib import Path
 from backend.academic_catalog import AcademicCatalogs, get_academic_catalogs
 from backend.academic_repository import (
     AcademicRepositoryIOError,
+    AcademicRepositoryNotFoundError,
     AcademicRepositorySchemaError,
 )
 from backend.contracts import AcademicRecord
@@ -105,6 +106,28 @@ class CsvAcademicRepository:
                 "El RUT académico pertenece a otro registro."
             )
         records[matching[0]] = candidate
+        self._write_atomically(records)
+
+    def delete(self, academic_id: str) -> None:
+        if not isinstance(academic_id, str) or not academic_id.strip():
+            raise AcademicRepositoryNotFoundError(
+                "El académico que se intentó eliminar no existe."
+            )
+        if not self._path.exists():
+            raise AcademicRepositoryNotFoundError(
+                "El académico que se intentó eliminar no existe."
+            )
+        records = self._read_records(self._path)
+        matching = [
+            index
+            for index, existing in enumerate(records)
+            if existing.academic_id == academic_id
+        ]
+        if len(matching) != 1:
+            raise AcademicRepositoryNotFoundError(
+                "El académico que se intentó eliminar no existe de forma única."
+            )
+        del records[matching[0]]
         self._write_atomically(records)
 
     def replace_all(self, records: list[AcademicRecord]) -> None:

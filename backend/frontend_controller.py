@@ -103,6 +103,12 @@ class PersistentFrontendController:
             return SubmissionResult(False, str(error))
         return _translated_academic_result(result)
 
+    def delete_academic(self, academic_id):
+        try:
+            return self.application.delete_academic(academic_id)
+        except RuntimeError as error:
+            return SubmissionResult(False, str(error))
+
     def download_information(self) -> UiResult:
         try:
             result = self.application.download_information()

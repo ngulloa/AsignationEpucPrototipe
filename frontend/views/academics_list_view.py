@@ -33,6 +33,7 @@ _RECORD_FIELDS = ("name", "rut", "plant", "profile", "weekly_hours", "status")
 class AcademicsListView(QWidget):
     add_requested = Signal()
     edit_requested = Signal(object)
+    delete_requested = Signal(str)
     menu_requested = Signal()
     logout_requested = Signal()
 
@@ -48,6 +49,8 @@ class AcademicsListView(QWidget):
         self._style_manager = style_manager
         self.academics = tuple(academics)
         self.action_buttons: list[QPushButton] = []
+        self._delete_buttons: dict[str, QPushButton] = {}
+        self._pending_delete_id: str | None = None
         self._compact_toolbar = False
         self.setObjectName("academicsListView")
         self._build_ui()
@@ -61,7 +64,7 @@ class AcademicsListView(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
         self.header = AppHeader(self.settings, username="", show_logout=True)
-        self.header.logout_requested.connect(self.logout_requested)
+        self.header.logout_requested.connect(self._request_logout)
         root.addWidget(self.header)
 
         body_widget = QWidget()
@@ -104,12 +107,12 @@ class AcademicsListView(QWidget):
             texts.button_labels["add_academic"],
             primary=True,
         )
-        self.add_button.clicked.connect(self.add_requested)
+        self.add_button.clicked.connect(self._request_add)
         self.back_button = self._action_button(
             texts.button_labels["back_to_menu"],
             primary=False,
         )
-        self.back_button.clicked.connect(self.menu_requested)
+        self.back_button.clicked.connect(self._request_menu)
         self._arrange_toolbar(compact=False)
         panel_layout.addLayout(self.toolbar)
 
@@ -200,8 +203,10 @@ class AcademicsListView(QWidget):
         self.header.username_label.setVisible(bool(username))
 
     def set_academics(self, academics: Iterable[AcademicRecord]) -> None:
+        self.reset_delete_confirmation()
         self.academics = tuple(academics)
         self.action_buttons.clear()
+        self._delete_buttons.clear()
         self.table.clearContents()
         self.table.setRowCount(len(self.academics))
         row_height = (
@@ -221,6 +226,7 @@ class AcademicsListView(QWidget):
                 self._actions_widget(academic),
             )
             self.table.setRowHeight(row, row_height)
+        self._fit_delete_action_widths()
         self.empty_label.setVisible(not self.academics)
         self.count_label.setText(f"Registros: {len(self.academics)}")
         self._refresh_edit_state()
@@ -233,26 +239,87 @@ class AcademicsListView(QWidget):
         edit_button = QPushButton(self.settings.texts.button_labels["edit"])
         edit_button.setObjectName("tableEditAction")
         edit_button.clicked.connect(
-            lambda _checked=False, record=academic: self.edit_requested.emit(record)
+            lambda _checked=False, record=academic: self._request_edit(record)
         )
         delete_button = QPushButton(self.settings.texts.button_labels["delete"])
         delete_button.setObjectName("tableDeleteAction")
-        delete_button.setEnabled(False)
-        delete_button.setToolTip(
-            self.settings.texts.out_of_scope_function_texts["record_actions"]
+        delete_button.clicked.connect(
+            lambda _checked=False, academic_id=academic.academic_id: (
+                self._request_delete(academic_id)
+            )
         )
+        self._delete_buttons[academic.academic_id] = delete_button
         self.action_buttons.extend((edit_button, delete_button))
         layout.addWidget(edit_button)
         layout.addWidget(delete_button)
         return container
 
+    def _fit_delete_action_widths(self) -> None:
+        delete_text = self.settings.texts.button_labels["delete"]
+        confirm_text = self.settings.texts.button_labels["confirm_delete"]
+        for delete_button in self._delete_buttons.values():
+            delete_button.setText(confirm_text)
+            delete_button.ensurePolished()
+            delete_button.setMinimumWidth(delete_button.sizeHint().width())
+            delete_button.setText(delete_text)
+            container = delete_button.parentWidget()
+            if container is not None and container.layout() is not None:
+                container.layout().invalidate()
+                container.layout().activate()
+        self.table.resizeColumnToContents(len(_RECORD_FIELDS))
+
     def _refresh_edit_state(self) -> None:
-        self.edit_selected_button.setEnabled(self.table.currentRow() >= 0)
+        row = self.table.currentRow()
+        self.edit_selected_button.setEnabled(row >= 0)
+        if self._pending_delete_id is not None:
+            selected_id = (
+                self.academics[row].academic_id
+                if 0 <= row < len(self.academics)
+                else None
+            )
+            if selected_id != self._pending_delete_id:
+                self.reset_delete_confirmation()
 
     def _edit_selected(self) -> None:
         row = self.table.currentRow()
         if 0 <= row < len(self.academics):
-            self.edit_requested.emit(self.academics[row])
+            self._request_edit(self.academics[row])
+
+    def _request_delete(self, academic_id: str) -> None:
+        if self._pending_delete_id == academic_id:
+            self.reset_delete_confirmation()
+            self.delete_requested.emit(academic_id)
+            return
+        self.reset_delete_confirmation()
+        delete_button = self._delete_buttons.get(academic_id)
+        if delete_button is None:
+            return
+        self._pending_delete_id = academic_id
+        delete_button.setText(self.settings.texts.button_labels["confirm_delete"])
+
+    def reset_delete_confirmation(self) -> None:
+        if self._pending_delete_id is None:
+            return
+        delete_button = self._delete_buttons.get(self._pending_delete_id)
+        if delete_button is not None:
+            delete_button.setText(self.settings.texts.button_labels["delete"])
+        self._pending_delete_id = None
+
+    def _request_add(self, _checked: bool = False) -> None:
+        self.reset_delete_confirmation()
+        self.add_requested.emit()
+
+    def _request_menu(self, _checked: bool = False) -> None:
+        self.reset_delete_confirmation()
+        self.menu_requested.emit()
+
+    def _request_edit(self, record: AcademicRecord) -> None:
+        self.reset_delete_confirmation()
+        self.edit_requested.emit(record)
+
+    def _request_logout(self) -> None:
+        self.reset_delete_confirmation()
+        self.logout_requested.emit()
 
     def show_result(self, message: str, *, success: bool) -> None:
         self.feedback_label.setText(message)

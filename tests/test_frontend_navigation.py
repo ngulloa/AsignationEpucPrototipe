@@ -156,4 +156,4 @@ def test_out_of_scope_actions_are_not_executable(qtbot: QtBot) -> None:
         if button.objectName() == "tableDeleteAction"
     ]
     assert edit_buttons and all(button.isEnabled() for button in edit_buttons)
-    assert delete_buttons and all(not button.isEnabled() for button in delete_buttons)
+    assert delete_buttons and all(button.isEnabled() for button in delete_buttons)

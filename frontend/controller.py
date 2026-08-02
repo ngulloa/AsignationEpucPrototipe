@@ -53,6 +53,8 @@ class FrontendController(Protocol):
         data: AcademicFormData,
     ) -> SubmissionResult: ...
 
+    def delete_academic(self, academic_id: str) -> SubmissionResult: ...
+
     def download_information(self) -> UiResult: ...
 
     def upload_information(self) -> UiResult: ...
@@ -196,6 +198,19 @@ class FakeFrontendController:
                     "Académico actualizado.",
                 )
         return SubmissionResult(False, "No fue posible actualizar el académico.")
+
+    def delete_academic(self, academic_id: str) -> SubmissionResult:
+        for index, existing in enumerate(self._academics):
+            if existing.academic_id == academic_id:
+                del self._academics[index]
+                return SubmissionResult(
+                    True,
+                    "Académico eliminado correctamente.",
+                )
+        return SubmissionResult(
+            False,
+            "El académico que intentó eliminar ya no existe.",
+        )
 
     def download_information(self) -> UiResult:
         return UiResult(True, "Academic.csv se actualizó correctamente.")

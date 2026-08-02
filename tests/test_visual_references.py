@@ -115,6 +115,9 @@ def test_academic_list_and_form_geometry_at_required_sizes(
         assert actions is not None and actions.isVisibleTo(view)
         edit_button, delete_button = view.action_buttons[:2]
         assert rectangle(edit_button).right() < rectangle(delete_button).left()
+        delete_button.setText("Confirmar")
+        assert delete_button.sizeHint().width() <= delete_button.width()
+        delete_button.setText("Borrar")
         assert_inside(view.table)
         assert_inside(edit_button)
         assert_inside(delete_button)

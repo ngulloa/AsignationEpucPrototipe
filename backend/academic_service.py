@@ -13,6 +13,7 @@ from backend.academic_catalog import ACADEMIC_CATALOGS, AcademicCatalogs
 from backend.academic_repository import (
     AcademicRepository,
     AcademicRepositoryError,
+    AcademicRepositoryNotFoundError,
 )
 from backend.contracts import (
     AcademicErrorCode,
@@ -40,6 +41,11 @@ LISTING_ERROR_MESSAGE = (
     "No fue posible cargar el listado de académicos. Intente nuevamente."
 )
 SUCCESS_MESSAGE = "Académico guardado correctamente."
+DELETE_SUCCESS_MESSAGE = "Académico eliminado correctamente."
+DELETE_NOT_FOUND_MESSAGE = "El académico que intentó eliminar ya no existe."
+DELETE_PERSISTENCE_ERROR_MESSAGE = (
+    "No fue posible eliminar el académico. Intente nuevamente."
+)
 
 ACADEMIC_ERROR_MESSAGES = {
     AcademicErrorCode.INVALID_RUT: INVALID_RUT_MESSAGE,
@@ -259,3 +265,15 @@ class AcademicService:
         except AcademicRepositoryError as error:
             LOGGER.exception("Falló la lectura del listado académico.")
             raise AcademicListingError(LISTING_ERROR_MESSAGE) from error
+
+    def delete_academic(self, academic_id: str) -> SubmissionResult:
+        """Atomically delete exactly one record by its stable identifier."""
+        try:
+            self._repository.delete(academic_id)
+        except AcademicRepositoryNotFoundError:
+            LOGGER.exception("El registro académico que se iba a eliminar no existe.")
+            return SubmissionResult(False, DELETE_NOT_FOUND_MESSAGE)
+        except AcademicRepositoryError:
+            LOGGER.exception("Falló la eliminación de un registro académico.")
+            return SubmissionResult(False, DELETE_PERSISTENCE_ERROR_MESSAGE)
+        return SubmissionResult(True, DELETE_SUCCESS_MESSAGE)
