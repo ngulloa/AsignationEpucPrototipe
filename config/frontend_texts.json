@@ -10,17 +10,14 @@
     "register": "Registro de usuario",
     "menu": "Sistema de asignación de carga académica",
     "academic_list": "Académicos",
-    "academic_form": "Agregar académico",
-    "approval": "Administración de aprobaciones",
-    "error_notification": "Notificar error",
-    "update": "Actualizar aplicación",
-    "alerts": "Alertas del propietario"
+    "academic_form": "Agregar académico"
   },
   "button_labels": {
     "assign_load": "Asignar carga",
     "assignments": "Asignaciones",
     "open_academics": "Académicos",
-    "courses": "Cursos",
+    "download_information": "Bajar información",
+    "upload_information": "Subir información",
     "add_academic": "Agregar",
     "back_to_menu": "Volver al menú",
     "edit": "Editar",
@@ -33,16 +30,6 @@
     "register": "Registrar usuario",
     "back_to_login": "Volver al inicio",
     "logout": "Cerrar sesión",
-    "notify_error": "Notificar error",
-    "approvals": "Administrar aprobaciones",
-    "owner_approvals": "Aprobar",
-    "update": "Actualizar aplicación",
-    "run_update": "Actualizar",
-    "alerts": "Visualizar alertas",
-    "approve": "Aprobar",
-    "send": "Enviar notificación",
-    "back": "Volver",
-    "open_table": "Ver tabla",
     "edit_selected": "Editar selección"
   },
   "field_labels": {
@@ -54,13 +41,7 @@
     "status": "Estado",
     "username": "Nombre de usuario",
     "password": "Contraseña",
-    "password_confirmation": "Repetir contraseña",
-    "authenticated_user": "Usuario autenticado",
-    "update_name": "Nombre de la actualización",
-    "pending_summary": "Cambios pendientes",
-    "error_source": "Pantalla de origen",
-    "error_type": "Tipo de error",
-    "error_detail": "Descripción"
+    "password_confirmation": "Repetir contraseña"
   },
   "table_headers": [
     "Nombre",
@@ -72,48 +53,15 @@
     "Acciones"
   ],
   "messages": {
-    "incomplete_application": "La aplicación todavía está incompleta.",
-    "save_without_persistence": "Guardar no persiste información en esta versión.",
     "no_academics": "No hay académicos disponibles.",
     "search_placeholder": "Buscar por nombre o RUT",
     "select_placeholder": "Seleccionar",
     "password_hint": "La contraseña debe tener entre 4 y 8 caracteres.",
-    "login_error": "Error de autenticación.",
-    "save_error": "Error al guardar.",
-    "update_error": "Error de actualización.",
-    "duplicate_rut": "RUT ya existe. Se sobrescribirán los datos del académico.",
-    "invalid_rut": "Rut inválido.",
-    "personal_table": "Tabla personal",
-    "shared_tables": "Tablas compartidas",
-    "no_shared_tables": "No hay tablas compartidas disponibles.",
-    "select_shared_table": "Seleccione una tabla para visualizar sus registros.",
-    "no_approvals": "No hay solicitudes pendientes.",
-    "no_alerts": "No hay alertas disponibles.",
-    "registration_ready": "La solicitud de registro fue preparada.",
-    "notification_ready": "La notificación fue preparada.",
-    "update_summary": "Interfaz y recursos locales listos para sincronizar. No se ejecutarán comandos Git en este prototipo."
+    "sync_in_progress": "Sincronización en curso…"
   },
   "out_of_scope_function_texts": {
-    "navigation": "La navegación se implementará en una etapa posterior.",
-    "menu_features": "Función no disponible en esta etapa.",
-    "search": "La búsqueda no está disponible en esta etapa.",
-    "record_actions": "La edición y eliminación no están disponibles en esta etapa.",
-    "rut_validation": "La validación de RUT se implementará en una etapa posterior.",
-    "academic_printing": "La impresión de académicos se implementará en una etapa posterior.",
-    "persistence": "La persistencia se implementará en una etapa posterior."
-  },
-  "working_hours": {
-    "status": "pending",
-    "unit": null,
-    "range": {
-      "minimum": null,
-      "maximum": null
-    },
-    "required": null,
-    "note": "Unidad, rango permitido y obligatoriedad aún no han sido definidos."
-  },
-  "wireframe_notes": {
-    "spelling_correction": "El wireframe muestra “acádemicos”; los textos de ejecución usan “académicos”.",
-    "catalog_scope": "Los catálogos académicos se definen y validan en el backend; los cuatro estados son una decisión provisional del MVP."
+    "menu_features": "Función no disponible en esta versión.",
+    "search": "La búsqueda no está disponible en esta versión.",
+    "record_actions": "La eliminación no está disponible en esta versión."
   }
 }

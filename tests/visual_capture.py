@@ -1,4 +1,4 @@
-"""Reproducible offscreen candidates for human visual-reference review."""
+"""Temporary offscreen captures for the five product views."""
 
 from __future__ import annotations
 
@@ -9,43 +9,47 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import QSize
-from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from backend.contracts import AcademicRecord
 from frontend.controller import FakeFrontendController
 from frontend.frontend_main import MainWindow, build_frontend_window
 from persistence.settings_repository import load_application_settings
 
-VISUAL_FIXTURE = (
-    AcademicRecord(
-        academic_id="visual-1",
-        name="Persona Visual Uno",
-        rut="12345678-5",
-        plant="Ordinaria",
-        profile="Mixto",
-        weekly_hours=40,
-        status="Activo",
-    ),
-    AcademicRecord(
-        academic_id="visual-2",
-        name="Persona Visual Dos",
-        rut="40000000-K",
-        plant="Mixta",
-        profile="Docente",
-        weekly_hours=40,
-        status="Sabático",
-    ),
-    AcademicRecord(
-        academic_id="visual-3",
-        name="Persona Visual Tres",
-        rut="11000003-0",
-        plant="Mixta",
-        profile="Docente",
-        weekly_hours=40,
-        status="Sabático",
-    ),
-)
+MINIMUM_SIZE = (720, 600)
+LARGE_SIZE = (1280, 900)
+
+
+def _records() -> tuple[AcademicRecord, ...]:
+    return (
+        AcademicRecord(
+            "synthetic-visual-1",
+            "12345678-5",
+            "Ana Sintética",
+            "Ordinaria",
+            "Mixto",
+            40,
+            "Activo",
+        ),
+        AcademicRecord(
+            "synthetic-visual-2",
+            "40000000-K",
+            "Segunda persona sintética",
+            "Especial",
+            "Docente",
+            22,
+            "Sabático",
+        ),
+        AcademicRecord(
+            "synthetic-visual-3",
+            "11000003-0",
+            "Registro sintético de jornada negativa",
+            "Especial",
+            "Standard",
+            -4,
+            "Inactivo",
+        ),
+    )
 
 
 def _capture(
@@ -54,22 +58,18 @@ def _capture(
     output_directory: Path,
     captures: list[dict[str, object]],
     *,
-    name: str,
     screen: str,
     state: str,
+    size_kind: str,
     prepare: Callable[[], None],
-    resolution: tuple[int, int] | None = None,
+    focus: Callable[[], QWidget],
+    resolution: tuple[int, int],
 ) -> None:
     prepare()
-    if resolution is None:
-        dimensions = window.settings.visual.screens[screen]
-        resolution = (dimensions.width, dimensions.height)
     window.resize(QSize(*resolution))
+    focus().setFocus()
     application.processEvents()
-    focus_widget = application.focusWidget()
-    if focus_widget is not None:
-        focus_widget.clearFocus()
-    application.processEvents()
+    name = f"{screen}_{size_kind}_{resolution[0]}x{resolution[1]}"
     destination = output_directory / f"{name}.png"
     if not window.grab().save(str(destination)):
         raise RuntimeError(f"No se pudo guardar la captura: {name}")
@@ -78,6 +78,7 @@ def _capture(
             "file": destination.name,
             "screen": screen,
             "state": state,
+            "size_kind": size_kind,
             "resolution": f"{resolution[0]}x{resolution[1]}",
             "sha256": hashlib.sha256(destination.read_bytes()).hexdigest(),
         }
@@ -87,196 +88,96 @@ def _capture(
 def capture_views(output_directory: Path) -> None:
     application = QApplication.instance() or QApplication([])
     output_directory.mkdir(parents=True, exist_ok=True)
-    controller = FakeFrontendController(academics=VISUAL_FIXTURE)
+    records = _records()
+    settings = load_application_settings()
     window = build_frontend_window(
-        controller=controller,
-        settings=load_application_settings(),
+        controller=FakeFrontendController(academics=records),
+        settings=settings,
     )
     window.show()
     application.processEvents()
     captures: list[dict[str, object]] = []
 
-    def capture(
-        name: str,
-        screen: str,
-        state: str,
-        prepare: Callable[[], None],
-        resolution: tuple[int, int] | None = None,
-    ) -> None:
-        _capture(
-            application,
-            window,
-            output_directory,
-            captures,
-            name=name,
-            screen=screen,
-            state=state,
-            prepare=prepare,
-            resolution=resolution,
-        )
+    def authenticate() -> None:
+        window._handle_authenticated("visual.sintetica")
 
-    capture("login", "login", "vacío", window.show_login)
-    capture("register", "register", "vacío", window.show_registration)
+    def prepare_login() -> None:
+        window.show_login()
 
-    window.login_view.username_input.setText("propietario")
-    window.login_view.password_input.setText("1234")
-    window.login_view.submit()
-    capture("menu", "menu", "sesión propietaria", window.show_main_menu)
-    capture(
-        "academic_list_personal",
-        "academic_list",
-        "tabla personal con registros",
-        window.show_academics_list,
-    )
-    capture(
-        "academic_list_personal_820x640",
-        "academic_list",
-        "tabla personal responsiva",
-        window.show_academics_list,
-        (820, 640),
-    )
-    capture(
-        "academic_list_personal_1280x900",
-        "academic_list",
-        "tabla personal ampliada",
-        window.show_academics_list,
-        (1280, 900),
-    )
+    def prepare_register() -> None:
+        window.show_registration()
 
-    def show_shared_tables() -> None:
+    def prepare_menu() -> None:
+        authenticate()
+        window.show_main_menu()
+        window.main_menu_view.set_sync_busy(False)
+
+    def prepare_list() -> None:
+        authenticate()
         window.show_academics_list()
-        window.academics_list_view.shared_tables_button.click()
+        window.academics_list_view.table.selectRow(0)
 
-    capture(
-        "academic_list_shared",
-        "academic_list",
-        "selector de tablas compartidas",
-        show_shared_tables,
+    def prepare_form() -> None:
+        authenticate()
+        window.show_academic_edit(records[0])
+
+    screens = (
+        (
+            "login",
+            "inicio de sesión vacío",
+            prepare_login,
+            lambda: window.login_view.username_input,
+        ),
+        (
+            "register",
+            "registro de cuenta vacío",
+            prepare_register,
+            lambda: window.register_view.username_input,
+        ),
+        (
+            "menu",
+            "Inicio con cinco acciones",
+            prepare_menu,
+            lambda: window.main_menu_view.download_button,
+        ),
+        (
+            "academic_list",
+            "lista global con filas sintéticas y acciones visibles",
+            prepare_list,
+            lambda: window.academics_list_view.edit_selected_button,
+        ),
+        (
+            "academic_form",
+            "formulario de edición completamente prellenado",
+            prepare_form,
+            lambda: window.academic_form_view.save_button,
+        ),
     )
-
-    def show_shared_records() -> None:
-        show_shared_tables()
-        window.academics_list_view.shared_tables_table.selectRow(0)
-
-    capture(
-        "academic_list_shared_records",
-        "academic_list",
-        "tabla compartida seleccionada",
-        show_shared_records,
-    )
-
-    def show_shared_edit_form() -> None:
-        show_shared_records()
-        window.academics_list_view.shared_records_table.selectRow(0)
-        window.academics_list_view.edit_selected_button.click()
-
-    capture(
-        "academic_form_shared_edit",
-        "academic_form",
-        "edición de registro compartido",
-        show_shared_edit_form,
-    )
-    capture(
-        "academic_form",
-        "academic_form",
-        "alta vacía",
-        window.show_academic_form,
-    )
-    capture(
-        "approval",
-        "approval",
-        "solicitudes pendientes",
-        window.show_approvals,
-    )
-
-    def show_preselected_error() -> None:
-        window.show_academic_form()
-        window.show_error_notification("Rut inválido.")
-
-    capture(
-        "error_notification",
-        "error_notification",
-        "clasificación y descripción segura requerida",
-        show_preselected_error,
-    )
-    capture(
-        "update",
-        "update",
-        "resumen estable",
-        window.show_update,
-    )
-    capture(
-        "alerts",
-        "alerts",
-        "detalle estructurado disponible",
-        window.show_alerts,
-    )
-
-    def show_rut_error() -> None:
-        window.show_academic_form()
-        form = window.academic_form_view
-        form.name_input.setText("Académico de prueba")
-        form.rut_input.setText("11111111-1")
-        form.plant_combo.setCurrentIndex(form.plant_combo.findData("Ordinaria"))
-        form.profile_combo.setCurrentIndex(form.profile_combo.findData("Mixto"))
-        form.submit()
-
-    capture(
-        "academic_form_rut_registered",
-        "academic_form",
-        "error de RUT duplicado",
-        show_rut_error,
-    )
-
-    def show_update_error() -> None:
-        window.show_update()
-        window.update_view.update_name_input.setText("error")
-        window.update_view.submit()
-        for _attempt in range(200):
-            if not window.update_view._operation.active:
-                break
-            QTest.qWait(10)
-        if window.update_view._operation.active:
-            raise RuntimeError("El worker ficticio de actualización no finalizó.")
-
-    capture(
-        "update_error",
-        "update",
-        "error controlado",
-        show_update_error,
-    )
-
-    def show_shared_access_denied() -> None:
-        window.logout()
-        window.login_view.username_input.setText("usuario.demo")
-        window.login_view.password_input.setText("1234")
-        window.login_view.submit()
-        show_shared_records()
-        window.academics_list_view.shared_records_table.selectRow(0)
-        window.academics_list_view._edit_selected()
-
-    capture(
-        "academic_list_shared_access_denied",
-        "academic_list",
-        "edición compartida denegada",
-        show_shared_access_denied,
-    )
+    for screen, state, prepare, focus in screens:
+        dimensions = settings.visual.screens[screen]
+        sizes = (
+            ("minimum", MINIMUM_SIZE),
+            ("configured", (dimensions.width, dimensions.height)),
+            ("large", LARGE_SIZE),
+        )
+        for size_kind, resolution in sizes:
+            _capture(
+                application,
+                window,
+                output_directory,
+                captures,
+                screen=screen,
+                state=state,
+                size_kind=size_kind,
+                prepare=prepare,
+                focus=focus,
+                resolution=resolution,
+            )
 
     manifest = {
         "schema_version": 1,
         "review_status": "pending_human_review",
-        "deterministic_environment": "Qt offscreen; datos FakeFrontendController",
-        "comparison": {
-            "penpot": (
-                "Comparación visual realizada con 01_Wireframes.pdf y la fuente "
-                "editable Penpot; se conserva jerarquía, color, tipografía, "
-                "superficies y distribución de 1280x900."
-            ),
-            "existing_references": (
-                "No se encontró un conjunto previo de referencias finales aprobadas."
-            ),
-            "decision": "Candidatas; no aprobadas hasta revisión humana.",
-        },
+        "deterministic_environment": "Qt offscreen; registros sintéticos",
         "captures": captures,
     }
     (output_directory / "manifest.json").write_text(

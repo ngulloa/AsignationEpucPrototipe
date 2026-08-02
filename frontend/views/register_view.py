@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from frontend.contracts import RegistrationRequest, UiResult
+from frontend.contracts import RegistrationRequest, RegistrationResult
 from frontend.settings import ApplicationSettings
 from frontend.style_manager import StyleManager
 from frontend.widgets import (
@@ -23,16 +23,14 @@ from frontend.widgets import (
     PageTitle,
     ResultBanner,
     Surface,
-    add_page_footer,
 )
 
-RegistrationCallback = Callable[[RegistrationRequest], UiResult]
+RegistrationCallback = Callable[[RegistrationRequest], RegistrationResult]
 
 
 class RegisterView(QWidget):
     back_requested = Signal()
-    registration_succeeded = Signal(str)
-    error_requested = Signal(str)
+    registration_succeeded = Signal(str, str)
 
     def __init__(
         self,
@@ -44,7 +42,6 @@ class RegisterView(QWidget):
         super().__init__(parent)
         self.settings = settings
         self._register_user = register_user
-        self._latest_error = "Error de registro."
         self.field_error_labels: dict[str, QLabel] = {}
         self.setObjectName("registerView")
         self._build_ui(style_manager)
@@ -121,8 +118,6 @@ class RegisterView(QWidget):
         panel_layout.addLayout(buttons)
 
         body.addWidget(panel, stretch=1, alignment=Qt.AlignmentFlag.AlignHCenter)
-        self.error_footer = add_page_footer(body, self.settings, self._request_error)
-        self.error_footer.hide()
         root.addLayout(body, stretch=1)
         for control in (
             self.username_input,
@@ -180,15 +175,12 @@ class RegisterView(QWidget):
                 self.field_error_labels[name].setText(message)
                 self.field_error_labels[name].show()
         if result.success:
-            self.registration_succeeded.emit(result.message)
-        else:
-            self._latest_error = result.message
+            self.password_input.clear()
+            self.confirmation_input.clear()
+            self.registration_succeeded.emit(result.message, result.username)
 
     def _clear_errors(self) -> None:
         self.result_label.clear_result()
         for label in self.field_error_labels.values():
             label.clear()
             label.hide()
-
-    def _request_error(self) -> None:
-        self.error_requested.emit(self._latest_error)

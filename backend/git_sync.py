@@ -1,399 +1,422 @@
-"""Cross-platform Git synchronization restricted to shared application data."""
+"""Git synchronization restricted to the one authoritative academic CSV."""
 
 from __future__ import annotations
 
 import os
 import shutil
+import stat
 import subprocess
-from collections.abc import Callable, Iterable
+import tempfile
+from collections.abc import Callable
+from enum import StrEnum
 from pathlib import Path, PurePosixPath
 
-from backend.system_contracts import UpdateResult
-from persistence.paths import normalize_username
+from backend.academic_catalog import get_academic_catalogs
+from backend.academic_repository import AcademicRepositoryError
+from backend.contracts import UpdateResult
+from persistence.csv_academic_repository import CsvAcademicRepository
+from persistence.paths import ProjectPaths
+
+PRODUCTIVE_REMOTE_URL = "https://github.com/ngulloa/AsignationEpucPrototipe.git"
+REMOTE_NAME = "origin"
+BRANCH_NAME = "main"
+ACADEMIC_PATH = "data/public/tables/Academic.csv"
+COMMIT_MESSAGE = "Actualizar Academic.csv"
 
 RunCommand = Callable[..., subprocess.CompletedProcess[str]]
-ProgressCallback = Callable[[str], None]
+CsvValidator = Callable[[Path], object]
 
 
 class GitServiceError(RuntimeError):
-    """A safe, user-facing Git workflow error."""
+    """A sanitized, user-facing synchronization failure."""
 
 
 class GitUnavailableError(GitServiceError):
-    """Git or the configured repository is unavailable."""
+    """Git is not installed or cannot be executed."""
+
+
+class GitConfigurationError(GitServiceError):
+    """The repository, remote URL, or fixed branch is not configured safely."""
 
 
 class GitRepositoryStateError(GitServiceError):
-    """The repository, remote, branch or index is unsafe for this operation."""
+    """The repository contains a state unsafe for this operation."""
 
 
-class RemoteUpdateDetectedError(GitServiceError):
-    """The remote branch changed before this publication could be pushed."""
+class GitLocalChangesError(GitRepositoryStateError):
+    """Local tracked, staged, or untracked files make synchronization unsafe."""
+
+
+class GitCodeUpdateRequiredError(GitRepositoryStateError):
+    """The remote range includes something other than Academic.csv."""
+
+
+class GitDivergenceError(GitRepositoryStateError):
+    """Local and remote main have diverged."""
+
+
+class GitRemoteAdvanceError(GitRepositoryStateError):
+    """Remote main has data that must be downloaded before an upload."""
+
+
+class GitLocalAdvanceError(GitRepositoryStateError):
+    """Local main contains an unrecognized unpublished commit."""
+
+
+class GitCsvValidationError(GitServiceError):
+    """Academic.csv is missing, unsafe, or invalid."""
+
+
+class GitNetworkError(GitServiceError):
+    """A fetch could not complete because of network or authentication."""
 
 
 class GitPushPendingError(GitServiceError):
-    """A valid local commit exists but its non-force push did not complete."""
+    """One valid local commit must be retained for a later non-force retry."""
 
-    def __init__(self, message: str, commit: str) -> None:
-        super().__init__(message)
+    def __init__(self, commit: str) -> None:
+        super().__init__(
+            "El envío falló por red, autenticación o rechazo remoto. "
+            "Hay un commit local pendiente; se conservará para reintentar."
+        )
         self.commit = commit
 
 
+class _Relation(StrEnum):
+    EQUAL = "equal"
+    REMOTE_AHEAD = "remote_ahead"
+    LOCAL_AHEAD = "local_ahead"
+    DIVERGED = "diverged"
+
+
 class GitSyncService:
-    """Run argument-list Git commands without managing credentials or branches."""
+    """Fetch, fast-forward, commit, and push only ``Academic.csv``.
+
+    Production constants are deliberately fixed. Tests inject only a disposable
+    repository root and its expected local remote URL.
+    """
 
     def __init__(
         self,
         repository_root: str | os.PathLike[str],
         *,
-        remote: str = "origin",
+        expected_remote_url: str | os.PathLike[str] = PRODUCTIVE_REMOTE_URL,
         runner: RunCommand = subprocess.run,
         git_executable: str | None = None,
+        csv_validator: CsvValidator | None = None,
     ) -> None:
         self.root = Path(repository_root).expanduser().resolve(strict=False)
-        self.remote = remote
+        self.expected_remote_url = os.fspath(expected_remote_url)
         self._runner = runner
         self._configured_git = git_executable
+        self._csv_validator = csv_validator or self._default_csv_validator
+        self._pending_commit: str | None = None
 
-    def run_update(self) -> UpdateResult:
-        """Fast-forward the current branch using only allowlisted public data."""
-        executable, branch = self._check_environment()
-        self._ensure_only_public_worktree_changes(executable)
-        before = self._git(executable, "rev-parse", "HEAD").stdout.strip()
-        self._git(executable, "fetch", "--prune", self.remote)
-        remote_revision = self._remote_revision(executable, branch)
-        if before == remote_revision:
-            return UpdateResult(False, "La aplicación ya estaba actualizada.")
+    @property
+    def pending_commit(self) -> str | None:
+        """Return the in-process pending commit without exposing it in UI text."""
+        return self._pending_commit
 
-        ancestry = self._git(
-            executable,
-            "merge-base",
-            "--is-ancestor",
-            before,
-            remote_revision,
-            allowed_returncodes=(0, 1),
-        )
-        if ancestry.returncode != 0:
-            raise GitRepositoryStateError(
-                "La rama local no puede actualizarse mediante avance rápido."
+    def download_information(self) -> UpdateResult:
+        """Fetch and fast-forward only when the remote range is exactly the CSV."""
+        executable = self._check_environment()
+        self._ensure_download_target_is_clean(executable)
+        unrelated_before = self._worktree_changes(executable) - {ACADEMIC_PATH}
+        local_revision = self._revision(executable, "HEAD")
+        self._fetch(executable)
+        remote_revision = self._remote_revision(executable)
+        relation = self._classify(executable, local_revision, remote_revision)
+
+        if relation is _Relation.EQUAL:
+            return UpdateResult(False, "No hay información nueva para bajar.")
+        if relation is _Relation.LOCAL_AHEAD:
+            if self._pending_commit is None and self._is_recoverable_pending(
+                executable,
+                local_revision=local_revision,
+                remote_revision=remote_revision,
+            ):
+                self._pending_commit = local_revision
+            if self._pending_commit == local_revision:
+                raise GitPushPendingError(local_revision)
+            raise GitLocalAdvanceError(
+                "La rama local contiene commits no publicados. "
+                "La descarga se detuvo sin modificar archivos."
             )
+        if relation is _Relation.DIVERGED:
+            raise GitDivergenceError(
+                "La rama main local y origin/main están divergentes. "
+                "Se requiere revisión manual."
+            )
+
         changed_paths = self._paths_between(
             executable,
-            before,
+            local_revision,
             remote_revision,
         )
-        if any(not self._is_allowed_shared_path(path) for path in changed_paths):
-            raise GitRepositoryStateError(
-                "La actualización remota contiene cambios inesperados en código o "
-                "configuración."
+        if changed_paths != {ACADEMIC_PATH}:
+            raise GitCodeUpdateRequiredError(
+                "La actualización remota incluye código, configuración, catálogos "
+                "u otra ruta. La aplicación necesita una actualización manual de código."
             )
-
-        self._git(executable, "merge", "--ff-only", remote_revision)
-        after = self._git(executable, "rev-parse", "HEAD").stdout.strip()
-        if after != remote_revision:
-            raise GitRepositoryStateError(
-                "No fue posible confirmar el avance rápido de la rama actual."
-            )
-        return UpdateResult(
-            changed=True,
-            message="Actualización recibida mediante avance rápido.",
-        )
-
-    def pending_summary(self) -> str:
-        """Describe shared changes without returning file contents."""
-        executable, _branch = self._check_environment()
-        result = self._git(
+        self._validate_revision_csv(executable, remote_revision)
+        merged = self._git(
             executable,
-            "status",
-            "--short",
-            "--",
-            "data/public",
-        )
-        count = len([line for line in result.stdout.splitlines() if line.strip()])
-        if count == 0:
-            return "No hay archivos compartidos pendientes de publicación Git."
-        return f"Archivos compartidos pendientes: {count}."
-
-    def publish_changes(
-        self,
-        *,
-        name: str,
-        username: str,
-        paths: Iterable[str | os.PathLike[str]],
-    ) -> UpdateResult:
-        """Commit only allowlisted shared paths and push the existing branch."""
-        executable, branch = self._check_environment()
-        canonical_username = normalize_username(username)
-        clean_name = self._clean_commit_component(name, label="nombre")
-        relative_paths = self._validated_shared_paths(paths)
-        if not relative_paths:
-            raise GitRepositoryStateError(
-                "No hay archivos compartidos permitidos para publicar."
-            )
-
-        self._ensure_worktree_contains_only(executable, set(relative_paths))
-        self._ensure_index_contains_only(executable, set(relative_paths))
-        self._git(executable, "fetch", "--prune", self.remote)
-        baseline = self._remote_revision(executable, branch)
-        local_revision = self._git(executable, "rev-parse", "HEAD").stdout.strip()
-        if baseline != local_revision:
-            raise RemoteUpdateDetectedError(
-                "Existe una actualización remota. Actualice antes de publicar."
-            )
-
-        self._git(executable, "add", "--", *relative_paths)
-        self._ensure_index_contains_only(executable, set(relative_paths))
-        difference = self._git(
-            executable,
-            "diff",
-            "--cached",
-            "--quiet",
-            "--",
-            *relative_paths,
-            allowed_returncodes=(0, 1),
-        )
-        if difference.returncode == 0:
-            return UpdateResult(False, "No hay cambios compartidos para publicar.")
-
-        # Fetch once more immediately before committing. A later race is rejected
-        # by the normal non-force push; it is never resolved by overwriting data.
-        self._git(executable, "fetch", "--prune", self.remote)
-        if self._remote_revision(executable, branch) != baseline:
-            raise RemoteUpdateDetectedError(
-                "Otro usuario publicó primero. Actualice antes de reintentar."
-            )
-
-        message = f"Actualización: {clean_name} | usuario: {canonical_username}"
-        self._git(executable, "commit", "-m", message)
-        pushed = self._git(
-            executable,
-            "push",
-            self.remote,
-            branch,
+            "merge",
+            "--ff-only",
+            f"{REMOTE_NAME}/{BRANCH_NAME}",
             raise_on_error=False,
         )
-        if pushed.returncode != 0:
-            raise RemoteUpdateDetectedError(
-                "La publicación fue detenida porque el remoto cambió o rechazó el envío."
-            )
-        return UpdateResult(True, "Cambios compartidos publicados correctamente.")
-
-    def publish_operation(
-        self,
-        *,
-        operation_id: str,
-        name: str,
-        username: str,
-        paths: Iterable[str | os.PathLike[str]],
-        restore_prepared_base: Callable[[], None],
-        verify_base: Callable[[], None],
-        materialize: Callable[[], None],
-        rollback_materialization: Callable[[], None],
-        on_committed: Callable[[str], None],
-        progress: ProgressCallback | None = None,
-    ) -> tuple[UpdateResult, str]:
-        """Create and push one exact, recoverable allowlisted publication commit."""
-        report = progress or (lambda _message: None)
-        executable, branch = self._check_environment()
-        canonical_username = normalize_username(username)
-        clean_name = self._clean_commit_component(name, label="nombre")
-        relative_paths = self._validated_shared_paths(paths)
-        requested = set(relative_paths)
-        if not relative_paths:
+        if merged.returncode != 0:
             raise GitRepositoryStateError(
-                "La publicación no contiene rutas autorizadas."
+                "No fue posible aplicar el avance rápido seguro. "
+                "No se intentó mezclar ramas."
             )
-        self._ensure_worktree_contains_only(executable, requested)
-        self._ensure_index_contains_only(executable, requested)
+        if self._revision(executable, "HEAD") != remote_revision:
+            raise GitRepositoryStateError(
+                "No fue posible confirmar el avance rápido seguro."
+            )
+        self._validate_local_csv()
+        if self._worktree_changes(executable) - {ACADEMIC_PATH} != unrelated_before:
+            raise GitRepositoryStateError(
+                "La verificación posterior detectó cambios ajenos a Academic.csv."
+            )
+        if self._paths_between(executable, local_revision, remote_revision) != {
+            ACADEMIC_PATH
+        }:
+            raise GitRepositoryStateError(
+                "La verificación posterior no confirmó la allowlist exacta."
+            )
+        return UpdateResult(True, "Academic.csv se actualizó correctamente.")
 
-        report("Restaurando la base confirmada…")
-        restore_prepared_base()
-        self._ensure_worktree_contains_only(executable, set())
-        self._ensure_index_contains_only(executable, set())
-        report("Consultando el remoto…")
-        self._git(executable, "fetch", "--prune", self.remote)
-        local_revision = self._git(executable, "rev-parse", "HEAD").stdout.strip()
-        remote_revision = self._remote_revision(executable, branch)
-        if local_revision != remote_revision:
-            ancestry = self._git(
-                executable,
-                "merge-base",
-                "--is-ancestor",
-                local_revision,
-                remote_revision,
-                allowed_returncodes=(0, 1),
+    def upload_information(self) -> UpdateResult:
+        """Commit and non-force push exactly ``Academic.csv``."""
+        executable = self._check_environment()
+        self._validate_local_csv()
+        changes = self._worktree_changes(executable)
+        unexpected = changes - {ACADEMIC_PATH}
+        if unexpected:
+            raise GitLocalChangesError(
+                "Hay cambios locales, staged o archivos no versionados fuera de "
+                "Academic.csv. La subida se detuvo."
             )
-            if ancestry.returncode != 0:
-                raise GitRepositoryStateError(
-                    "HEAD contiene commits adelantados o divergentes desconocidos."
-                )
-            changed_paths = self._paths_between(
-                executable,
-                local_revision,
-                remote_revision,
-            )
-            unexpected = {
-                path for path in changed_paths if not self._is_allowed_shared_path(path)
-            }
-            if unexpected:
-                raise GitRepositoryStateError(
-                    "El remoto contiene rutas fuera de la allowlist de datos públicos."
-                )
-            report("Integrando un avance rápido seguro…")
-            self._git(executable, "merge", "--ff-only", remote_revision)
+        if self._pending_commit is not None and changes:
+            raise GitPushPendingError(self._pending_commit)
 
-        report("Comprobando la versión base…")
-        verify_base()
-        materialized = False
-        committed = False
-        commit = ""
         try:
-            report("Materializando los dos CSV y el índice…")
-            materialized = True
-            materialize()
-            changes = self._worktree_changes(executable)
-            if not changes or not changes.issubset(requested):
-                raise GitRepositoryStateError(
-                    "La materialización produjo rutas inesperadas o ningún cambio."
-                )
-            report("Preparando únicamente las rutas autorizadas…")
-            self._git(executable, "add", "--", *relative_paths)
-            self._ensure_index_contains_only(executable, requested)
-            difference = self._git(
-                executable,
-                "diff",
-                "--cached",
-                "--quiet",
-                "--",
-                *relative_paths,
-                allowed_returncodes=(0, 1),
-            )
-            if difference.returncode == 0:
-                raise GitRepositoryStateError(
-                    "La operación preparada no contiene un cambio publicable."
-                )
-            report("Verificando que el remoto siga estable…")
-            self._git(executable, "fetch", "--prune", self.remote)
-            if self._remote_revision(executable, branch) != remote_revision:
-                raise RemoteUpdateDetectedError(
-                    "Otro usuario publicó antes del commit; el borrador se conservó."
-                )
-            message = (
-                f"Publicación {operation_id}: {clean_name} | "
-                f"usuario: {canonical_username}"
-            )
-            report("Creando un commit identificable…")
-            self._git(executable, "commit", "-m", message)
-            committed = True
-            commit = self._git(executable, "rev-parse", "HEAD").stdout.strip()
-            on_committed(commit)
-        except Exception:
-            if not committed:
-                self._restore_index_paths(executable, relative_paths)
-                if materialized:
-                    rollback_materialization()
+            self._fetch(executable)
+        except GitNetworkError as error:
+            if self._pending_commit is not None:
+                raise GitPushPendingError(self._pending_commit) from error
             raise
 
-        report("Enviando el mismo commit al remoto…")
-        pushed = self._git(
+        local_revision = self._revision(executable, "HEAD")
+        remote_revision = self._remote_revision(executable)
+        if self._pending_commit is not None:
+            return self._retry_pending(
+                executable,
+                local_revision=local_revision,
+                remote_revision=remote_revision,
+            )
+
+        relation = self._classify(executable, local_revision, remote_revision)
+        if relation is _Relation.REMOTE_AHEAD:
+            raise GitRemoteAdvanceError(
+                "Origin/main contiene información nueva. Baje la información antes "
+                "de subir cambios."
+            )
+        if relation is _Relation.LOCAL_AHEAD:
+            if self._is_recoverable_pending(
+                executable,
+                local_revision=local_revision,
+                remote_revision=remote_revision,
+            ):
+                self._pending_commit = local_revision
+                return self._retry_pending(
+                    executable,
+                    local_revision=local_revision,
+                    remote_revision=remote_revision,
+                )
+            raise GitLocalAdvanceError(
+                "La rama local contiene un commit no reconocido. La subida se detuvo."
+            )
+        if relation is _Relation.DIVERGED:
+            raise GitDivergenceError(
+                "La rama main local y origin/main están divergentes. "
+                "Se requiere revisión manual."
+            )
+
+        added = self._git(
             executable,
-            "push",
-            self.remote,
-            f"{commit}:refs/heads/{branch}",
+            "add",
+            "--",
+            ACADEMIC_PATH,
             raise_on_error=False,
         )
-        if pushed.returncode != 0:
-            raise GitPushPendingError(
-                "El commit local es válido, pero el push falló; puede reintentarse.",
-                commit,
+        if added.returncode != 0:
+            raise GitRepositoryStateError(
+                "No fue posible preparar Academic.csv de forma segura."
             )
-        return (
-            UpdateResult(True, "Cambios compartidos publicados correctamente."),
-            commit,
-        )
+        staged = self._staged_paths(executable)
+        if not staged:
+            return UpdateResult(False, "No hay cambios en Academic.csv para subir.")
+        if staged != {ACADEMIC_PATH}:
+            raise GitLocalChangesError(
+                "El área staged contiene rutas no autorizadas. La subida se detuvo."
+            )
+        self._validate_local_csv()
 
-    def retry_publication(
+        committed = self._git(
+            executable,
+            "commit",
+            "-m",
+            COMMIT_MESSAGE,
+            "--only",
+            "--",
+            ACADEMIC_PATH,
+            raise_on_error=False,
+        )
+        if committed.returncode != 0:
+            raise GitRepositoryStateError(
+                "No fue posible crear el commit local de Academic.csv. "
+                "Revise la identidad Git configurada."
+            )
+        commit = self._revision(executable, "HEAD")
+        if self._commit_paths(executable, commit) != {ACADEMIC_PATH}:
+            raise GitRepositoryStateError(
+                "El commit local no superó la verificación de allowlist y no se envió."
+            )
+        self._pending_commit = commit
+        self._push_pending(executable, commit)
+        self._pending_commit = None
+        return UpdateResult(True, "Academic.csv se subió correctamente.")
+
+    def _retry_pending(
         self,
+        executable: str,
         *,
-        commit: str,
-        progress: ProgressCallback | None = None,
+        local_revision: str,
+        remote_revision: str,
     ) -> UpdateResult:
-        """Push exactly one recorded commit without materializing or committing again."""
-        report = progress or (lambda _message: None)
-        executable, branch = self._check_environment()
-        self._ensure_worktree_contains_only(executable, set())
-        self._ensure_index_contains_only(executable, set())
-        report("Consultando el remoto para reintentar…")
-        self._git(executable, "fetch", "--prune", self.remote)
-        remote_revision = self._remote_revision(executable, branch)
-        commit_exists = self._git(
+        commit = self._pending_commit
+        if commit is None:
+            raise GitRepositoryStateError("No existe un commit local pendiente.")
+        exists = self._git(
             executable,
             "cat-file",
             "-e",
             f"{commit}^{{commit}}",
             raise_on_error=False,
         )
-        if commit_exists.returncode != 0:
-            raise GitRepositoryStateError("El commit registrado ya no está disponible.")
-        already_published = self._git(
-            executable,
-            "merge-base",
-            "--is-ancestor",
-            commit,
-            remote_revision,
-            allowed_returncodes=(0, 1),
-        )
-        if already_published.returncode == 0:
-            return UpdateResult(True, "El commit ya está publicado en el remoto.")
-        local_revision = self._git(executable, "rev-parse", "HEAD").stdout.strip()
-        if local_revision != commit:
-            raise GitRepositoryStateError(
-                "HEAD contiene commits adelantados desconocidos; reintento detenido."
+        if exists.returncode != 0 or local_revision != commit:
+            raise GitPushPendingError(commit)
+        if remote_revision == commit:
+            self._pending_commit = None
+            return UpdateResult(True, "El commit pendiente ya estaba publicado.")
+        if self._is_ancestor(executable, commit, remote_revision):
+            self._pending_commit = None
+            return UpdateResult(
+                True,
+                "El commit pendiente ya estaba publicado; "
+                "origin/main contiene información posterior para bajar.",
             )
-        remote_is_base = self._git(
-            executable,
-            "merge-base",
-            "--is-ancestor",
-            remote_revision,
-            commit,
-            allowed_returncodes=(0, 1),
-        )
-        if remote_is_base.returncode != 0:
-            raise GitRepositoryStateError(
-                "El remoto divergió del commit pendiente; reintento detenido."
+        if not self._is_ancestor(executable, remote_revision, commit):
+            raise GitDivergenceError(
+                "Origin/main ya no es ancestro del commit local pendiente. "
+                "El reintento se detuvo sin crear otro commit."
             )
-        report("Reintentando exactamente el commit local…")
+        if self._paths_between(executable, remote_revision, commit) != {ACADEMIC_PATH}:
+            raise GitPushPendingError(commit)
+        self._validate_revision_csv(executable, commit)
+        self._push_pending(executable, commit)
+        self._pending_commit = None
+        return UpdateResult(
+            True, "El mismo commit local pendiente se subió correctamente."
+        )
+
+    def _is_recoverable_pending(
+        self,
+        executable: str,
+        *,
+        local_revision: str,
+        remote_revision: str,
+    ) -> bool:
+        """Recognize one exact service commit after an application restart."""
+        if not self._is_ancestor(executable, remote_revision, local_revision):
+            return False
+        count = self._git(
+            executable,
+            "rev-list",
+            "--count",
+            f"{remote_revision}..{local_revision}",
+            raise_on_error=False,
+        )
+        subject = self._git(
+            executable,
+            "show",
+            "-s",
+            "--format=%s",
+            local_revision,
+            raise_on_error=False,
+        )
+        return (
+            count.returncode == 0
+            and count.stdout.strip() == "1"
+            and subject.returncode == 0
+            and subject.stdout.strip() == COMMIT_MESSAGE
+            and self._commit_paths(executable, local_revision) == {ACADEMIC_PATH}
+        )
+
+    def _push_pending(self, executable: str, commit: str) -> None:
         pushed = self._git(
             executable,
             "push",
-            self.remote,
-            f"{commit}:refs/heads/{branch}",
+            REMOTE_NAME,
+            f"{commit}:refs/heads/{BRANCH_NAME}",
             raise_on_error=False,
         )
         if pushed.returncode != 0:
-            raise GitPushPendingError(
-                "El push volvió a fallar; el mismo commit continúa pendiente.",
-                commit,
-            )
-        return UpdateResult(True, "Commit pendiente publicado correctamente.")
+            raise GitPushPendingError(commit)
 
-    def _check_environment(self) -> tuple[str, str]:
-        executable = self._configured_git or shutil.which("git")
-        if not executable:
-            raise GitUnavailableError("Git no está instalado o no está disponible.")
+    def _check_environment(self) -> str:
+        executable = self._git_executable()
+        if executable is None:
+            raise GitUnavailableError("Git no está disponible en este equipo.")
         if not self.root.is_dir():
-            raise GitUnavailableError("El directorio del repositorio no existe.")
+            raise GitConfigurationError(
+                "El repositorio Git de la aplicación no está configurado."
+            )
         inside = self._git(
             executable,
             "rev-parse",
             "--is-inside-work-tree",
             raise_on_error=False,
         )
-        if inside.returncode != 0 or inside.stdout.strip() != "true":
-            raise GitUnavailableError(
-                "El directorio configurado no es un repositorio Git."
+        top = self._git(
+            executable,
+            "rev-parse",
+            "--show-toplevel",
+            raise_on_error=False,
+        )
+        if (
+            inside.returncode != 0
+            or inside.stdout.strip() != "true"
+            or top.returncode != 0
+        ):
+            raise GitConfigurationError(
+                "El repositorio Git de la aplicación no está configurado."
             )
-        branch_result = self._git(
+        try:
+            top_level = Path(top.stdout.strip()).resolve(strict=True)
+        except OSError, RuntimeError:
+            raise GitConfigurationError(
+                "La raíz del repositorio Git no coincide con la configuración."
+            ) from None
+        if top_level != self.root:
+            raise GitConfigurationError(
+                "La raíz del repositorio Git no coincide con la configuración."
+            )
+
+        branch = self._git(
             executable,
             "symbolic-ref",
             "--quiet",
@@ -401,122 +424,128 @@ class GitSyncService:
             "HEAD",
             raise_on_error=False,
         )
-        branch = branch_result.stdout.strip()
-        if branch_result.returncode != 0 or not branch:
-            raise GitRepositoryStateError(
-                "El repositorio no tiene una rama actual utilizable."
+        if branch.returncode != 0 or branch.stdout.strip() != BRANCH_NAME:
+            raise GitConfigurationError(
+                "La aplicación solo puede sincronizar desde la rama main."
             )
-        remotes = self._git(executable, "remote").stdout.splitlines()
-        if self.remote not in {value.strip() for value in remotes}:
-            raise GitRepositoryStateError("El remoto Git configurado no existe.")
-        # Verify the URL exists, but deliberately never expose or retain its value.
-        remote_url = self._git(
+        remotes = self._git(executable, "remote", raise_on_error=False)
+        if remotes.returncode != 0 or REMOTE_NAME not in {
+            line.strip() for line in remotes.stdout.splitlines()
+        }:
+            raise GitConfigurationError("El remoto origin no está configurado.")
+        fetch_urls = self._remote_urls(executable, push=False)
+        push_urls = self._remote_urls(executable, push=True)
+        expected = (self.expected_remote_url,)
+        if fetch_urls != expected or push_urls != expected:
+            raise GitConfigurationError(
+                "La URL de origin no coincide con el repositorio configurado."
+            )
+        return executable
+
+    def _git_executable(self) -> str | None:
+        if self._configured_git is None:
+            return shutil.which("git")
+        configured = self._configured_git
+        if os.sep in configured or (os.altsep is not None and os.altsep in configured):
+            return configured if Path(configured).is_file() else None
+        return shutil.which(configured)
+
+    def _remote_urls(self, executable: str, *, push: bool) -> tuple[str, ...]:
+        arguments = ["remote", "get-url", "--all"]
+        if push:
+            arguments.append("--push")
+        arguments.append(REMOTE_NAME)
+        result = self._git(executable, *arguments, raise_on_error=False)
+        if result.returncode != 0:
+            return ()
+        return tuple(
+            line.strip() for line in result.stdout.splitlines() if line.strip()
+        )
+
+    def _fetch(self, executable: str) -> None:
+        fetched = self._git(
             executable,
-            "remote",
-            "get-url",
-            "--push",
-            self.remote,
+            "fetch",
+            REMOTE_NAME,
+            BRANCH_NAME,
             raise_on_error=False,
         )
-        if remote_url.returncode != 0 or not remote_url.stdout.strip():
-            raise GitRepositoryStateError("El remoto Git no tiene una URL de envío.")
-        return executable, branch
+        if fetched.returncode != 0:
+            raise GitNetworkError(
+                "No fue posible consultar origin/main. "
+                "Revise la red y la autenticación Git."
+            )
 
-    def _remote_revision(self, executable: str, branch: str) -> str:
-        reference = f"refs/remotes/{self.remote}/{branch}"
+    def _remote_revision(self, executable: str) -> str:
         result = self._git(
             executable,
             "rev-parse",
             "--verify",
-            reference,
+            f"refs/remotes/{REMOTE_NAME}/{BRANCH_NAME}",
             raise_on_error=False,
         )
-        revision = result.stdout.strip()
-        if result.returncode != 0 or not revision:
-            raise GitRepositoryStateError(
-                "No fue posible comprobar la rama remota actual."
-            )
-        return revision
+        if result.returncode != 0 or not result.stdout.strip():
+            raise GitConfigurationError("La rama origin/main no está configurada.")
+        return result.stdout.strip()
 
-    def _validated_shared_paths(
-        self, paths: Iterable[str | os.PathLike[str]]
-    ) -> list[str]:
-        valid: set[str] = set()
-        for supplied in paths:
-            candidate = Path(supplied)
-            absolute = (
-                candidate.resolve(strict=False)
-                if candidate.is_absolute()
-                else (self.root / candidate).resolve(strict=False)
-            )
-            try:
-                relative = absolute.relative_to(self.root)
-            except ValueError as error:
-                raise GitRepositoryStateError(
-                    "Se intentó publicar una ruta fuera del repositorio."
-                ) from error
-            portable = PurePosixPath(*relative.parts).as_posix()
-            if not self._is_allowed_shared_path(portable):
-                raise GitRepositoryStateError(
-                    "La ruta solicitada no pertenece a los datos compartidos permitidos."
-                )
-            valid.add(portable)
-        return sorted(valid)
-
-    @staticmethod
-    def _is_allowed_shared_path(path: str) -> bool:
-        fixed = {
-            "data/public/approved_users.json",
-            "data/public/catalogs/academic_profiles.csv",
-            "data/public/catalogs/academic_staff.csv",
-            "data/public/tables_index.json",
-            "data/public/notifications_error.json",
-        }
-        if path in fixed:
-            return True
-        pure = PurePosixPath(path)
-        return (
-            pure.parent == PurePosixPath("data/public/tables")
-            and pure.suffix.lower() == ".csv"
-            and pure.name not in {".", ".."}
+    def _revision(self, executable: str, revision: str) -> str:
+        result = self._git(
+            executable,
+            "rev-parse",
+            "--verify",
+            revision,
+            raise_on_error=False,
         )
+        if result.returncode != 0 or not result.stdout.strip():
+            raise GitRepositoryStateError(
+                "No fue posible identificar la revisión Git requerida."
+            )
+        return result.stdout.strip()
 
-    def _ensure_index_contains_only(
-        self, executable: str, requested_paths: set[str]
-    ) -> None:
+    def _classify(self, executable: str, local: str, remote: str) -> _Relation:
+        if local == remote:
+            return _Relation.EQUAL
+        if self._is_ancestor(executable, local, remote):
+            return _Relation.REMOTE_AHEAD
+        if self._is_ancestor(executable, remote, local):
+            return _Relation.LOCAL_AHEAD
+        return _Relation.DIVERGED
+
+    def _is_ancestor(self, executable: str, older: str, newer: str) -> bool:
+        result = self._git(
+            executable,
+            "merge-base",
+            "--is-ancestor",
+            older,
+            newer,
+            allowed_returncodes=(0, 1),
+        )
+        return result.returncode == 0
+
+    def _paths_between(self, executable: str, older: str, newer: str) -> set[str]:
         result = self._git(
             executable,
             "diff",
-            "--cached",
+            "--no-renames",
             "--name-only",
             "-z",
+            older,
+            newer,
         )
-        staged = {value for value in result.stdout.split("\0") if value}
-        unexpected = staged - requested_paths
-        if unexpected:
-            raise GitRepositoryStateError(
-                "El índice Git contiene archivos ajenos a esta publicación."
-            )
+        return self._nul_paths(result.stdout)
 
-    def _ensure_only_public_worktree_changes(self, executable: str) -> None:
-        unexpected = {
-            path
-            for path in self._worktree_changes(executable)
-            if not self._is_allowed_shared_path(path)
-        }
-        if unexpected:
-            raise GitRepositoryStateError(
-                "El repositorio contiene cambios inesperados en código o configuración."
-            )
-
-    def _ensure_worktree_contains_only(
-        self, executable: str, requested_paths: set[str]
-    ) -> None:
-        unexpected = self._worktree_changes(executable) - requested_paths
-        if unexpected:
-            raise GitRepositoryStateError(
-                "El repositorio contiene cambios ajenos a esta publicación."
-            )
+    def _commit_paths(self, executable: str, commit: str) -> set[str]:
+        result = self._git(
+            executable,
+            "diff-tree",
+            "--no-commit-id",
+            "--no-renames",
+            "--name-only",
+            "-r",
+            "-z",
+            commit,
+        )
+        return self._nul_paths(result.stdout)
 
     def _worktree_changes(self, executable: str) -> set[str]:
         commands = (
@@ -526,48 +555,122 @@ class GitSyncService:
         )
         changed: set[str] = set()
         for arguments in commands:
-            result = self._git(executable, *arguments)
-            changed.update(value for value in result.stdout.split("\0") if value)
+            changed.update(self._nul_paths(self._git(executable, *arguments).stdout))
         return changed
 
-    def _restore_index_paths(self, executable: str, paths: list[str]) -> None:
-        if not paths:
-            return
-        self._git(
-            executable,
-            "restore",
-            "--staged",
-            "--source=HEAD",
-            "--",
-            *paths,
-            raise_on_error=False,
-        )
-
-    def _paths_between(
-        self,
-        executable: str,
-        older_revision: str,
-        newer_revision: str,
-    ) -> set[str]:
+    def _staged_paths(self, executable: str) -> set[str]:
         result = self._git(
             executable,
             "diff",
+            "--cached",
             "--no-renames",
             "--name-only",
             "-z",
-            older_revision,
-            newer_revision,
         )
-        return {value for value in result.stdout.split("\0") if value}
+        return self._nul_paths(result.stdout)
 
     @staticmethod
-    def _clean_commit_component(value: str, *, label: str) -> str:
-        clean = " ".join(value.replace("\r", " ").replace("\n", " ").split())
-        if not clean or len(clean) > 80:
-            raise GitRepositoryStateError(
-                f"El {label} de la actualización debe tener entre 1 y 80 caracteres."
+    def _nul_paths(output: str) -> set[str]:
+        return {value for value in output.split("\0") if value}
+
+    def _ensure_download_target_is_clean(self, executable: str) -> None:
+        if ACADEMIC_PATH in self._worktree_changes(executable):
+            raise GitLocalChangesError(
+                "Academic.csv tiene cambios locales que podrían sobrescribirse. "
+                "La descarga se detuvo."
             )
-        return clean
+        target = self.root / ACADEMIC_PATH
+        if target.exists() or target.is_symlink():
+            self._assert_safe_regular_file(target)
+
+    def _validate_local_csv(self) -> None:
+        target = self.root / ACADEMIC_PATH
+        self._assert_safe_regular_file(target)
+        self._validate_csv(target)
+
+    def _validate_revision_csv(self, executable: str, revision: str) -> None:
+        tree = self._git(
+            executable,
+            "ls-tree",
+            "-z",
+            revision,
+            "--",
+            ACADEMIC_PATH,
+            raise_on_error=False,
+        )
+        entries = [entry for entry in tree.stdout.split("\0") if entry]
+        if tree.returncode != 0 or len(entries) != 1:
+            raise GitCsvValidationError("El Academic.csv remoto es inválido.")
+        descriptor, separator, path = entries[0].partition("\t")
+        mode_and_type = descriptor.split()
+        if (
+            not separator
+            or path != ACADEMIC_PATH
+            or len(mode_and_type) < 2
+            or mode_and_type[0] != "100644"
+            or mode_and_type[1] != "blob"
+        ):
+            raise GitCsvValidationError(
+                "El Academic.csv remoto no es un archivo regular autorizado."
+            )
+        try:
+            blob = self._git(
+                executable,
+                "show",
+                f"{revision}:{ACADEMIC_PATH}",
+                raise_on_error=False,
+            )
+        except GitServiceError as error:
+            raise GitCsvValidationError(
+                "El Academic.csv remoto no tiene una codificación válida."
+            ) from error
+        if blob.returncode != 0:
+            raise GitCsvValidationError("El Academic.csv remoto es inválido.")
+        try:
+            with tempfile.TemporaryDirectory(
+                prefix="epuc-academic-validate-"
+            ) as folder:
+                candidate = Path(folder) / "Academic.csv"
+                candidate.write_text(blob.stdout, encoding="utf-8", newline="")
+                self._validate_csv(candidate)
+        except GitCsvValidationError:
+            raise
+        except (OSError, UnicodeError) as error:
+            raise GitCsvValidationError(
+                "No fue posible validar el Academic.csv remoto."
+            ) from error
+
+    def _validate_csv(self, path: Path) -> None:
+        try:
+            self._csv_validator(path)
+        except (AcademicRepositoryError, OSError, UnicodeError, ValueError) as error:
+            raise GitCsvValidationError(
+                "Academic.csv es inválido y no se sincronizó."
+            ) from error
+
+    def _default_csv_validator(self, path: Path) -> object:
+        catalogs_path = ProjectPaths(self.root)
+        return CsvAcademicRepository(
+            path,
+            catalogs=get_academic_catalogs(catalogs_path),
+        ).list_all()
+
+    def _assert_safe_regular_file(self, target: Path) -> None:
+        current = self.root
+        for component in PurePosixPath(ACADEMIC_PATH).parts:
+            current = current / component
+            if current.is_symlink():
+                raise GitCsvValidationError(
+                    "Academic.csv no puede ser un enlace simbólico."
+                )
+        try:
+            mode = os.lstat(target).st_mode
+        except OSError as error:
+            raise GitCsvValidationError(
+                "Academic.csv no existe o no puede leerse."
+            ) from error
+        if not stat.S_ISREG(mode):
+            raise GitCsvValidationError("Academic.csv debe ser un archivo regular.")
 
     def _git(
         self,
@@ -576,23 +679,21 @@ class GitSyncService:
         allowed_returncodes: tuple[int, ...] = (0,),
         raise_on_error: bool = True,
     ) -> subprocess.CompletedProcess[str]:
-        command = [executable, *arguments]
         try:
             completed = self._runner(
-                command,
+                [executable, *arguments],
                 cwd=self.root,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="strict",
                 check=False,
                 shell=False,
             )
-        except (OSError, subprocess.SubprocessError) as error:
+        except (OSError, UnicodeError, subprocess.SubprocessError) as error:
             raise GitServiceError(
                 "No fue posible ejecutar Git de forma segura."
             ) from error
         if raise_on_error and completed.returncode not in allowed_returncodes:
-            operation = arguments[0] if arguments else "comando"
-            raise GitServiceError(
-                f"La operación Git '{operation}' no pudo completarse."
-            )
+            raise GitServiceError("Una comprobación Git segura no pudo completarse.")
         return completed

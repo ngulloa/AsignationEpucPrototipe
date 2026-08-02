@@ -31,7 +31,7 @@ class Dimensions:
 
 @dataclass(frozen=True, slots=True)
 class TypographySettings:
-    """Font families, sizes and weights used by the future interface."""
+    """Font families, sizes and weights used by the interface."""
 
     preferred_family: str
     fallback_families: tuple[str, ...]
@@ -66,7 +66,6 @@ class VisualSettings:
     colors: Mapping[str, str]
     typography: TypographySettings
     screens: Mapping[str, Dimensions]
-    validation_viewport: Dimensions
     margins: Mapping[str, int]
     spacing: Mapping[str, int]
     radii: Mapping[str, int]
@@ -75,27 +74,8 @@ class VisualSettings:
 
 
 @dataclass(frozen=True, slots=True)
-class PendingRange:
-    """An intentionally undefined numeric range."""
-
-    minimum: None
-    maximum: None
-
-
-@dataclass(frozen=True, slots=True)
-class WorkingHoursSettings:
-    """Pending decisions for the future working-hours field."""
-
-    status: str
-    unit: None
-    value_range: PendingRange
-    required: None
-    note: str
-
-
-@dataclass(frozen=True, slots=True)
 class TextParameters:
-    """Validated visible texts and pending product decisions."""
+    """Validated visible texts consumed by active views."""
 
     schema_version: int
     application_name: str
@@ -106,8 +86,6 @@ class TextParameters:
     table_headers: tuple[str, ...]
     messages: Mapping[str, str]
     out_of_scope_function_texts: Mapping[str, str]
-    working_hours: WorkingHoursSettings
-    wireframe_notes: Mapping[str, str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,25 +151,10 @@ def _require_nonnegative_integer(value: object, location: str) -> int:
     return integer
 
 
-def _require_bool(value: object, location: str) -> bool:
-    if type(value) is not bool:
-        raise _validation_error(location, "se esperaba un valor booleano")
-    return value
-
-
 def _require_number(value: object, location: str) -> float:
     if type(value) not in (int, float):
         raise _validation_error(location, "se esperaba un número")
     return float(value)
-
-
-def _require_null(value: object, location: str) -> None:
-    if value is not None:
-        raise _validation_error(
-            location,
-            "el valor debe permanecer nulo mientras la decisión esté pendiente",
-        )
-    return None
 
 
 def _parse_schema_version(values: Mapping[str, object], location: str) -> int:
@@ -231,10 +194,6 @@ def _parse_dimensions_mapping(
         "menu",
         "academic_list",
         "academic_form",
-        "approval",
-        "error_notification",
-        "update",
-        "alerts",
     )
     dimensions = {
         screen: _parse_dimensions(
@@ -435,10 +394,6 @@ def parse_visual_settings(values: Mapping[str, object]) -> VisualSettings:
             _required(values, "screens", location),
             f"{location}.screens",
         ),
-        validation_viewport=_parse_dimensions(
-            _required(values, "validation_viewport", location),
-            f"{location}.validation_viewport",
-        ),
         margins=_parse_positive_integer_mapping(
             _required(values, "margins", location),
             f"{location}.margins",
@@ -459,50 +414,6 @@ def parse_visual_settings(values: Mapping[str, object]) -> VisualSettings:
         shadows=_parse_shadows(
             _required(values, "shadows", location),
             f"{location}.shadows",
-        ),
-    )
-
-
-def _parse_working_hours(value: object, location: str) -> WorkingHoursSettings:
-    values = _require_object(value, location)
-    status = _require_string(
-        _required(values, "status", location),
-        f"{location}.status",
-    )
-    if status != "pending":
-        raise _validation_error(
-            f"{location}.status",
-            "la decisión debe permanecer con estado 'pending'",
-        )
-
-    raw_range = _require_object(
-        _required(values, "range", location),
-        f"{location}.range",
-    )
-    value_range = PendingRange(
-        minimum=_require_null(
-            _required(raw_range, "minimum", f"{location}.range"),
-            f"{location}.range.minimum",
-        ),
-        maximum=_require_null(
-            _required(raw_range, "maximum", f"{location}.range"),
-            f"{location}.range.maximum",
-        ),
-    )
-    return WorkingHoursSettings(
-        status=status,
-        unit=_require_null(
-            _required(values, "unit", location),
-            f"{location}.unit",
-        ),
-        value_range=value_range,
-        required=_require_null(
-            _required(values, "required", location),
-            f"{location}.required",
-        ),
-        note=_require_string(
-            _required(values, "note", location),
-            f"{location}.note",
         ),
     )
 
@@ -542,14 +453,6 @@ def parse_text_parameters(values: Mapping[str, object]) -> TextParameters:
         out_of_scope_function_texts=_parse_string_mapping(
             _required(values, "out_of_scope_function_texts", location),
             f"{location}.out_of_scope_function_texts",
-        ),
-        working_hours=_parse_working_hours(
-            _required(values, "working_hours", location),
-            f"{location}.working_hours",
-        ),
-        wireframe_notes=_parse_string_mapping(
-            _required(values, "wireframe_notes", location),
-            f"{location}.wireframe_notes",
         ),
     )
 

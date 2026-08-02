@@ -12,9 +12,7 @@ from typing import Mapping
 
 from backend.contracts import (
     ACADEMIC_STATUSES,
-    AcademicAggregate,
     AcademicProfile,
-    AcademicRecord,
     AcademicStaff,
 )
 
@@ -56,11 +54,8 @@ class AcademicCatalogs:
     profiles: tuple[CatalogOption, ...]
     statuses: tuple[CatalogOption, ...]
     compatible_profile_keys: Mapping[str, tuple[str, ...]]
-    _staff_keys_by_id: Mapping[str, str]
     _staff_by_key: Mapping[str, AcademicStaff]
-    _profile_keys_by_id: Mapping[str, str]
     _profiles_by_key: Mapping[str, AcademicProfile]
-    _profiles_by_id: Mapping[str, AcademicProfile]
     _plant_aliases: Mapping[str, str]
     _profile_aliases: Mapping[str, str]
     _status_aliases: Mapping[str, str]
@@ -112,52 +107,6 @@ class AcademicCatalogs:
             profile is not None
             and staff is not None
             and profile.staff_id == staff.staff_id
-        )
-
-    def profile_id_for_keys(self, plant_key: str, profile_key: str) -> str | None:
-        profile = self._profiles_by_key.get(profile_key)
-        if profile is None or not self.is_compatible(plant_key, profile_key):
-            return None
-        return profile.profile_id
-
-    def profile_id_for_legacy(self, plant: str, profile: str) -> str | None:
-        plant_key = self.read_plant_key(plant)
-        profile_key = self.read_profile_key(profile)
-        if plant_key is None or profile_key is None:
-            return None
-        return self.profile_id_for_keys(plant_key, profile_key)
-
-    def profile_by_id(self, profile_id: str) -> AcademicProfile | None:
-        return self._profiles_by_id.get(profile_id)
-
-    def profile_key(self, profile_id: str) -> str | None:
-        return self._profile_keys_by_id.get(profile_id)
-
-    def staff_key(self, staff_id: str) -> str | None:
-        return self._staff_keys_by_id.get(staff_id)
-
-    def project(self, aggregate: AcademicAggregate) -> AcademicRecord:
-        """Join one unambiguous current appointment for the existing UI."""
-        appointment = aggregate.current_appointment()
-        if appointment is None:
-            raise ValueError("El académico no posee un nombramiento vigente.")
-        profile = self.profile_by_id(appointment.profile_id)
-        if profile is None:
-            raise ValueError("El nombramiento referencia un perfil inexistente.")
-        profile_key = self.profile_key(profile.profile_id)
-        plant_key = self.staff_key(profile.staff_id)
-        if profile_key is None or plant_key is None:
-            raise ValueError(
-                "El catálogo académico no puede proyectar el nombramiento."
-            )
-        return AcademicRecord(
-            academic_id=aggregate.academic.academic_id,
-            rut=aggregate.academic.rut,
-            name=aggregate.academic.name,
-            plant=plant_key,
-            profile=profile_key,
-            weekly_hours=appointment.weekly_hours,
-            status=aggregate.academic.status,
         )
 
 
@@ -234,7 +183,6 @@ def load_academic_catalogs(staff_path: Path, profiles_path: Path) -> AcademicCat
     profile_entities: list[AcademicProfile] = []
     profile_keys: dict[str, str] = {}
     profiles_by_key: dict[str, AcademicProfile] = {}
-    profiles_by_id: dict[str, AcademicProfile] = {}
     for line_number, row in enumerate(profile_rows, start=2):
         if row["staff_id"] not in staff_keys:
             raise AcademicCatalogSchemaError(
@@ -269,7 +217,6 @@ def load_academic_catalogs(staff_path: Path, profiles_path: Path) -> AcademicCat
         profile_entities.append(entity)
         profile_keys[entity.profile_id] = key
         profiles_by_key[key] = entity
-        profiles_by_id[entity.profile_id] = entity
 
     plants = tuple(
         CatalogOption(key, entity.name, entity.staff_id, entity.active)
@@ -327,11 +274,8 @@ def load_academic_catalogs(staff_path: Path, profiles_path: Path) -> AcademicCat
         profiles=profiles,
         statuses=tuple(CatalogOption(status, status) for status in ACADEMIC_STATUSES),
         compatible_profile_keys=MappingProxyType(compatible),
-        _staff_keys_by_id=MappingProxyType(staff_keys),
         _staff_by_key=MappingProxyType(staff_by_key),
-        _profile_keys_by_id=MappingProxyType(profile_keys),
         _profiles_by_key=MappingProxyType(profiles_by_key),
-        _profiles_by_id=MappingProxyType(profiles_by_id),
         _plant_aliases=_aliases(plant_alias_values),
         _profile_aliases=_aliases(profile_alias_values),
         _status_aliases=_aliases(status_alias_values),

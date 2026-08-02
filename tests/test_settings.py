@@ -44,14 +44,61 @@ def test_loads_both_valid_json_documents() -> None:
     assert settings.visual.screens["menu"].width == 768
     assert settings.visual.screens["academic_list"].width == 1080
     assert settings.visual.screens["academic_form"].height == 768
-    assert settings.visual.validation_viewport.height == 768
     assert settings.texts.application_name
     assert settings.texts.button_labels["add_academic"] == "Agregar"
-    assert settings.texts.button_labels["owner_approvals"] == "Aprobar"
-    assert settings.texts.button_labels["approvals"] == "Administrar aprobaciones"
     assert settings.texts.button_labels["overwrite"] == "Sobrescribir"
-    assert settings.texts.working_hours.unit is None
-    assert settings.texts.working_hours.required is None
+
+
+def test_configuration_contains_only_consumed_catalogs() -> None:
+    visual = _read_document(DEFAULT_CONFIG_PATH)
+    texts = _read_document(DEFAULT_PARAMETERS_PATH)
+
+    assert set(visual) == {
+        "schema_version",
+        "colors",
+        "typography",
+        "screens",
+        "margins",
+        "spacing",
+        "radii",
+        "borders",
+        "shadows",
+    }
+    assert set(visual["screens"]) == {
+        "login",
+        "register",
+        "menu",
+        "academic_list",
+        "academic_form",
+    }
+    assert set(visual["colors"]) == {
+        "brand_yellow",
+        "brand_light_blue",
+        "brand_blue",
+        "semantic_success",
+        "semantic_error",
+        "neutral_gray_500",
+        "neutral_gray_700",
+        "neutral_black",
+        "neutral_gray_50",
+        "neutral_gray_100",
+        "neutral_white",
+        "neutral_gray_300",
+        "neutral_gray_200",
+    }
+    assert set(visual["margins"]) == {"page", "section"}
+    assert set(visual["radii"]) == {"small"}
+    assert set(texts) == {
+        "schema_version",
+        "application_name",
+        "headers",
+        "screen_titles",
+        "button_labels",
+        "field_labels",
+        "table_headers",
+        "messages",
+        "out_of_scope_function_texts",
+    }
 
 
 def test_default_paths_work_from_a_different_working_directory(

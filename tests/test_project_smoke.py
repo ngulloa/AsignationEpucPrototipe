@@ -15,12 +15,17 @@ IMPORTABLE_MODULES = (
     "frontend.frontend_main",
     "frontend.navigation",
     "frontend.settings",
-    "frontend.views.approval_view",
-    "frontend.views.error_notification_view",
-    "frontend.views.update_view",
+    "frontend.views.login_view",
+    "frontend.views.register_view",
+    "frontend.views.main_menu_view",
+    "frontend.views.academics_list_view",
+    "frontend.views.academic_form_view",
     "backend.contracts",
+    "backend.authentication",
+    "backend.git_sync",
     "persistence.paths",
-    "persistence.personal_academic_repository",
+    "persistence.user_repository",
+    "persistence.csv_academic_repository",
 )
 
 

@@ -13,7 +13,6 @@ from backend.academic_catalog import ACADEMIC_CATALOGS, AcademicCatalogs
 from backend.academic_repository import (
     AcademicRepository,
     AcademicRepositoryError,
-    AcademicRepositoryIOError,
 )
 from backend.contracts import (
     AcademicErrorCode,
@@ -247,12 +246,7 @@ class AcademicService:
             duplicate = self._repository.find_by_rut(validated.rut)
             if duplicate is not None and duplicate.academic_id != academic_id:
                 return _failure(AcademicErrorCode.DUPLICATE_RUT)
-            update = getattr(self._repository, "update", None)
-            if update is None:
-                raise AcademicRepositoryIOError(
-                    "El repositorio no permite actualizar registros."
-                )
-            update(validated.record(academic_id))
+            self._repository.update(validated.record(academic_id))
         except AcademicRepositoryError:
             LOGGER.exception("Falló la actualización de un registro académico.")
             return _failure(AcademicErrorCode.PERSISTENCE_ERROR)

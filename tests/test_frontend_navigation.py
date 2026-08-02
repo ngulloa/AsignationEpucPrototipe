@@ -41,8 +41,8 @@ def test_initial_screen_has_one_instance_of_each_view_and_one_application(
     assert isinstance(window, QMainWindow)
     assert window.current_screen == LOGIN_SCREEN
     assert window.stack.currentWidget() is window.login_view
-    assert window.stack.count() == 9
-    assert len({id(window.stack.widget(index)) for index in range(9)}) == 9
+    assert window.stack.count() == 5
+    assert len({id(window.stack.widget(index)) for index in range(5)}) == 5
     assert (window.width(), window.height()) == (768, 768)
 
 
@@ -134,7 +134,9 @@ def test_out_of_scope_actions_are_not_executable(qtbot: QtBot) -> None:
     menu = window.main_menu_view
     assert not menu.assign_load_button.isEnabled()
     assert not menu.assignments_button.isEnabled()
-    assert not menu.courses_button.isEnabled()
+    assert menu.academics_button.isEnabled()
+    assert menu.download_button.isEnabled()
+    assert menu.upload_button.isEnabled()
 
     academics = window.academics_list_view
     assert not academics.search_input.isEnabled()

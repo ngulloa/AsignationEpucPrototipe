@@ -1,18 +1,15 @@
-"""Local user profiles containing only derived password-verification material."""
+"""Single-file local account storage for derived password verifiers only."""
 
 from __future__ import annotations
 
 import base64
 from dataclasses import dataclass
-from datetime import UTC, datetime
 
-from backend.academic_catalog import get_academic_catalogs
 from persistence.atomic_json_repository import (
     AtomicJsonRepository,
     JsonDocument,
     JsonDocumentCorruptError,
 )
-from persistence.csv_academic_repository import CsvAcademicRepository
 from persistence.paths import DEFAULT_PATHS, ProjectPaths, normalize_username
 
 USER_SCHEMA_VERSION = 1
@@ -20,7 +17,7 @@ USER_SCHEMA_VERSION = 1
 
 @dataclass(frozen=True, slots=True)
 class StoredUser:
-    """Password verifier data kept in a user's private local profile."""
+    """Password verifier data kept in the consolidated local account file."""
 
     username: str
     algorithm: str
@@ -30,54 +27,93 @@ class StoredUser:
     r: int
     p: int
     length: int
-    created_at: str
 
 
 class UserAlreadyExistsError(RuntimeError):
-    """The canonical username already owns a local directory."""
+    """The canonical username already exists in the local account file."""
 
 
 class UserNotFoundError(RuntimeError):
     """No usable local profile exists for the canonical username."""
 
 
-def _validate_user_document(document: JsonDocument) -> None:
-    if document.get("schema_version") != USER_SCHEMA_VERSION:
-        raise ValueError("Versión de perfil no soportada.")
-    username = document.get("username")
-    if not isinstance(username, str) or normalize_username(username) != username:
-        raise ValueError("Nombre de usuario inválido.")
-    created_at = document.get("created_at")
-    if not isinstance(created_at, str) or not created_at:
-        raise ValueError("Fecha de creación inválida.")
-    verifier = document.get("password_verifier")
-    if not isinstance(verifier, dict):
-        raise ValueError("Verificador de contraseña ausente.")
-    if verifier.get("algorithm") != "scrypt":
+def _decode_base64(value: object) -> bytes:
+    if not isinstance(value, str) or not value:
+        raise ValueError("Verificador de contraseña inválido.")
+    try:
+        decoded = base64.b64decode(value, validate=True)
+    except (ValueError, TypeError) as error:
+        raise ValueError("Verificador de contraseña inválido.") from error
+    if not decoded or base64.b64encode(decoded).decode("ascii") != value:
+        raise ValueError("Verificador de contraseña inválido.")
+    return decoded
+
+
+def _validate_verifier(verifier: object) -> None:
+    if not isinstance(verifier, dict) or set(verifier) != {
+        "algorithm",
+        "salt",
+        "hash",
+        "n",
+        "r",
+        "p",
+        "length",
+    }:
+        raise ValueError("Verificador de contraseña inválido.")
+    if verifier["algorithm"] != "scrypt":
         raise ValueError("Algoritmo de contraseña no soportado.")
-    for key in ("salt", "hash"):
-        value = verifier.get(key)
-        if not isinstance(value, str) or not value:
-            raise ValueError("Verificador de contraseña inválido.")
-        try:
-            base64.b64decode(value, validate=True)
-        except (ValueError, TypeError) as error:
-            raise ValueError("Verificador de contraseña inválido.") from error
+    salt = _decode_base64(verifier["salt"])
+    password_hash = _decode_base64(verifier["hash"])
+    if len(salt) < 16:
+        raise ValueError("Salt de contraseña inválido.")
     for key in ("n", "r", "p", "length"):
-        value = verifier.get(key)
+        value = verifier[key]
         if type(value) is not int or value <= 0:
             raise ValueError("Parámetros de contraseña inválidos.")
+    n = verifier["n"]
+    if n <= 1 or n & (n - 1):
+        raise ValueError("Parámetro scrypt inválido.")
+    if len(password_hash) != verifier["length"]:
+        raise ValueError("Longitud del verificador inválida.")
+
+
+def _validate_user_document(document: JsonDocument) -> None:
+    if set(document) != {"schema_version", "users"}:
+        raise ValueError("Estructura de cuentas inválida.")
+    if document.get("schema_version") != USER_SCHEMA_VERSION:
+        raise ValueError("Versión de cuentas no soportada.")
+    users = document.get("users")
+    if not isinstance(users, list):
+        raise ValueError("Lista de cuentas inválida.")
+    usernames: set[str] = set()
+    for user in users:
+        if not isinstance(user, dict) or set(user) != {
+            "username",
+            "password_verifier",
+        }:
+            raise ValueError("Cuenta local inválida.")
+        username = user["username"]
+        if not isinstance(username, str):
+            raise ValueError("Nombre de usuario inválido.")
+        try:
+            canonical = normalize_username(username)
+        except ValueError as error:
+            raise ValueError("Nombre de usuario inválido.") from error
+        if canonical != username or canonical in usernames:
+            raise ValueError("Nombre de usuario duplicado o no normalizado.")
+        _validate_verifier(user["password_verifier"])
+        usernames.add(canonical)
 
 
 class JsonUserRepository:
-    """Create and load fail-closed local user profiles."""
+    """Create and load accounts from one fail-closed atomic JSON document."""
 
     def __init__(self, paths: ProjectPaths = DEFAULT_PATHS) -> None:
         self.paths = paths
 
     def exists(self, username: str) -> bool:
         canonical = normalize_username(username)
-        return self.paths.user_profile_path(canonical).is_file()
+        return any(item.username == canonical for item in self._read_users_if_present())
 
     def create(
         self,
@@ -92,19 +128,16 @@ class JsonUserRepository:
         length: int,
     ) -> StoredUser:
         canonical = normalize_username(username)
-        user_directory = self.paths.user_dir(canonical)
-        try:
-            user_directory.mkdir(parents=True, exist_ok=False)
-        except FileExistsError as error:
-            raise UserAlreadyExistsError(
-                "El nombre de usuario ya está registrado."
-            ) from error
-
-        created_at = datetime.now(UTC).isoformat()
-        document: JsonDocument = {
-            "schema_version": USER_SCHEMA_VERSION,
+        document = self._read_document_if_present()
+        users = document["users"]
+        assert isinstance(users, list)
+        if any(
+            isinstance(item, dict) and item.get("username") == canonical
+            for item in users
+        ):
+            raise UserAlreadyExistsError("El nombre de usuario ya está registrado.")
+        user_document: JsonDocument = {
             "username": canonical,
-            "created_at": created_at,
             "password_verifier": {
                 "algorithm": algorithm,
                 "salt": base64.b64encode(salt).decode("ascii"),
@@ -115,63 +148,51 @@ class JsonUserRepository:
                 "length": length,
             },
         }
-        self._store(canonical).write(document)
-        CsvAcademicRepository(
-            self.paths.personal_academics_path(canonical),
-            appointments_path=self.paths.personal_academic_appointments_path(canonical),
-            catalogs=get_academic_catalogs(self.paths),
-        ).replace_all([])
-        return self._to_user(document)
+        users.append(user_document)
+        users.sort(
+            key=lambda item: (
+                str(item.get("username", "")) if isinstance(item, dict) else ""
+            )
+        )
+        self._store().write(document)
+        return self._to_user(user_document)
 
     def get(self, username: str) -> StoredUser:
         canonical = normalize_username(username)
-        path = self.paths.user_profile_path(canonical)
-        if not path.exists():
-            raise UserNotFoundError("Las credenciales no son válidas.")
-        try:
-            document = self._store(canonical).read()
-        except JsonDocumentCorruptError as error:
-            raise UserNotFoundError(
-                "El perfil local está dañado y fue aislado para recuperación."
-            ) from error
-        user = self._to_user(document)
-        if user.username != canonical:
-            raise UserNotFoundError("El perfil local no corresponde al usuario.")
-        return user
+        for user in self._read_users_if_present():
+            if user.username == canonical:
+                return user
+        raise UserNotFoundError("Las credenciales no son válidas.")
 
     def list_usernames(self) -> list[str]:
-        if not self.paths.users_dir.is_dir():
-            return []
-        usernames: list[str] = []
-        for child in self.paths.users_dir.iterdir():
-            if not child.is_dir() or not (child / "user.json").is_file():
-                continue
-            try:
-                canonical = normalize_username(child.name)
-                self.get(canonical)
-            except ValueError, UserNotFoundError:
-                continue
-            usernames.append(canonical)
-        return sorted(usernames)
+        return [user.username for user in self._read_users_if_present()]
 
-    def _store(self, username: str) -> AtomicJsonRepository:
-        # Invalid credentials must never be replaced with an empty profile.
-        empty = {
+    def _read_document_if_present(self) -> JsonDocument:
+        if not self.paths.local_users_path.exists():
+            return {
+                "schema_version": USER_SCHEMA_VERSION,
+                "users": [],
+            }
+        try:
+            return self._store().read()
+        except JsonDocumentCorruptError as error:
+            raise UserNotFoundError(
+                "El archivo local de cuentas está dañado y fue aislado."
+            ) from error
+
+    def _read_users_if_present(self) -> list[StoredUser]:
+        document = self._read_document_if_present()
+        users = document["users"]
+        assert isinstance(users, list)
+        return [self._to_user(item) for item in users if isinstance(item, dict)]
+
+    def _store(self) -> AtomicJsonRepository:
+        empty: JsonDocument = {
             "schema_version": USER_SCHEMA_VERSION,
-            "username": username,
-            "created_at": datetime.now(UTC).isoformat(),
-            "password_verifier": {
-                "algorithm": "scrypt",
-                "salt": "AA==",
-                "hash": "AA==",
-                "n": 1,
-                "r": 1,
-                "p": 1,
-                "length": 1,
-            },
+            "users": [],
         }
         return AtomicJsonRepository(
-            self.paths.user_profile_path(username),
+            self.paths.local_users_path,
             empty_document=empty,
             validator=_validate_user_document,
             recover_corrupt=False,
@@ -191,5 +212,4 @@ class JsonUserRepository:
             r=int(verifier["r"]),
             p=int(verifier["p"]),
             length=int(verifier["length"]),
-            created_at=str(document["created_at"]),
         )

@@ -30,15 +30,10 @@ dist/
 *.rej
 tmp/
 temp/
-backups/
 data/*.tmp
 data/*.bak
-users/
-config/owner.local.json
 config/*.credentials.json
 data/local/
-data/public/**/*.corrupt.*
-data/public/**/*.bak
 state/
 logs/
 credentials/
@@ -46,14 +41,7 @@ credentials/
 *.swo
 *~
 screenshots/
-.codex/
 project_state*
-
-!data/public/approved_users.json
-!data/public/tables_index.json
-!data/public/notifications_error.json
-!data/public/tables/
-!data/public/tables/*.csv
 
 .idea/
 .vscode/

@@ -23,16 +23,14 @@ from frontend.widgets import (
     PageTitle,
     ResultBanner,
     Surface,
-    add_page_footer,
 )
 
 AuthenticationCallback = Callable[[LoginRequest], AuthenticationResult]
 
 
 class LoginView(QWidget):
-    authenticated = Signal(str, bool, bool)
+    authenticated = Signal(str)
     registration_requested = Signal()
-    error_requested = Signal(str)
 
     def __init__(
         self,
@@ -44,7 +42,6 @@ class LoginView(QWidget):
         super().__init__(parent)
         self.settings = settings
         self._authenticate = authenticate
-        self._latest_error = settings.texts.messages["login_error"]
         self.setObjectName("loginView")
         self._build_ui(style_manager)
 
@@ -124,8 +121,6 @@ class LoginView(QWidget):
         panel_layout.addLayout(buttons)
 
         body.addWidget(panel, stretch=1, alignment=self._center())
-        self.error_footer = add_page_footer(body, self.settings, self._request_error)
-        self.error_footer.hide()
         root.addLayout(body, stretch=1)
 
         self.username_input.textChanged.connect(self._refresh_submit_state)
@@ -153,23 +148,12 @@ class LoginView(QWidget):
         self.result_label.present(result.message, success=result.success)
         if result.success:
             self.password_input.clear()
-            self.authenticated.emit(
-                result.username,
-                result.is_owner,
-                result.is_approved,
-            )
-            return
-        self._latest_error = result.message
+            self.authenticated.emit(result.username)
 
     def present_message(self, message: str, *, success: bool) -> None:
         self.result_label.present(message, success=success)
-        if not success:
-            self._latest_error = message
 
     def reset(self) -> None:
         self.username_input.clear()
         self.password_input.clear()
         self.result_label.clear_result()
-
-    def _request_error(self) -> None:
-        self.error_requested.emit(self._latest_error)

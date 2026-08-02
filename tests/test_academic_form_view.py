@@ -259,7 +259,7 @@ def test_empty_profile_is_not_sent_to_submission_callback(qtbot: QtBot) -> None:
     assert form.field_error_labels["profile"].text() == "Seleccione un perfil válido."
 
 
-def test_legacy_incompatible_record_is_visible_warned_and_cannot_be_saved(
+def test_historical_incompatible_record_is_visible_warned_and_cannot_be_saved(
     qtbot: QtBot,
 ) -> None:
     received: list[AcademicFormData] = []
@@ -269,7 +269,7 @@ def test_legacy_incompatible_record_is_visible_warned_and_cannot_be_saved(
         return validate_academic_form(data)
 
     record = AcademicRecord(
-        academic_id="legacy-incompatible",
+        academic_id="historical-incompatible",
         rut="12345678-5",
         name="Persona histórica sintética",
         plant="Ordinaria",

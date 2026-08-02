@@ -1,4 +1,4 @@
-"""Reusable QThread boundary for blocking publication operations."""
+"""Reusable QThread boundary for blocking synchronization operations."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ from PySide6.QtCore import QObject, QThread, Signal, Slot
 class OperationWorker(QObject):
     """Run a callable without retaining or touching any widget."""
 
-    progress = Signal(str)
     succeeded = Signal(object)
     failed = Signal(str)
     finished = Signal()
@@ -21,7 +20,6 @@ class OperationWorker(QObject):
 
     @Slot()
     def run(self) -> None:
-        self.progress.emit("Iniciando operación segura…")
         try:
             result = self._callback()
         except Exception:  # unexpected details must not cross the UI boundary
@@ -35,7 +33,6 @@ class OperationWorker(QObject):
 class AsyncOperation(QObject):
     """Own one worker/thread pair and reject overlapping starts."""
 
-    progress = Signal(str)
     succeeded = Signal(object)
     failed = Signal(str)
     finished = Signal()
@@ -56,7 +53,6 @@ class AsyncOperation(QObject):
         worker = OperationWorker(callback)
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
-        worker.progress.connect(self.progress)
         worker.succeeded.connect(self.succeeded)
         worker.failed.connect(self.failed)
         worker.finished.connect(thread.quit)
@@ -73,12 +69,3 @@ class AsyncOperation(QObject):
         self._thread = None
         self._worker = None
         self.finished.emit()
-
-    def shutdown(self, timeout_ms: int = 5000) -> bool:
-        """Wait for an in-flight operation during application teardown."""
-        thread = self._thread
-        if thread is None:
-            return True
-        thread.requestInterruption()
-        thread.quit()
-        return thread.wait(timeout_ms)

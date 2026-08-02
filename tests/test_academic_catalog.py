@@ -37,30 +37,38 @@ def test_profiles_are_exposed_by_compatible_plant() -> None:
 
 
 @pytest.mark.parametrize(
-    ("legacy", "canonical"),
+    ("catalog", "historical", "canonical"),
     [
-        ("Mixta", "Especial"),
-        ("Planta especial", "Especial"),
-        ("estándar", "Standard"),
-        ("Gestion", "Gestión"),
-        ("Sabatico", "Sabático"),
+        ("plant", "Mixta", "Especial"),
+        ("plant", "Planta Mixta", "Especial"),
+        ("plant", "Planta especial", "Especial"),
+        ("profile", "Investigadora", "Investigador"),
+        ("profile", "Mixta", "Mixto"),
+        ("profile", "estándar", "Standard"),
+        ("profile", "Estandar", "Standard"),
+        ("profile", "Gestion", "Gestión"),
+        ("status", "Activa", "Activo"),
+        ("status", "Inactiva", "Inactivo"),
+        ("status", "Sabatico", "Sabático"),
+        ("status", "Terminada", "Terminado"),
     ],
 )
 def test_recognizable_historical_aliases_have_canonical_read_keys(
-    legacy: str,
+    catalog: str,
+    historical: str,
     canonical: str,
 ) -> None:
     catalogs = get_academic_catalogs()
-    resolvers = (
-        catalogs.read_plant_key,
-        catalogs.read_profile_key,
-        catalogs.read_status_key,
-    )
+    resolver = {
+        "plant": catalogs.read_plant_key,
+        "profile": catalogs.read_profile_key,
+        "status": catalogs.read_status_key,
+    }[catalog]
 
-    assert canonical in {resolver(legacy) for resolver in resolvers}
+    assert resolver(historical) == canonical
 
 
-def test_legacy_aliases_are_not_accepted_as_strict_write_keys() -> None:
+def test_historical_aliases_are_not_accepted_as_strict_write_keys() -> None:
     catalogs = get_academic_catalogs()
 
     assert catalogs.strict_plant_key("Mixta") is None

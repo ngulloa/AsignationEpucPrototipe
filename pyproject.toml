@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "epuc-academic-assignment"
 version = "0.2.0"
-description = "Prototipo local para asignación de carga académica"
+description = "Aplicación local para gestionar información académica"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "PySide6>=6.10,<7",
@@ -20,7 +20,6 @@ dev = [
 
 [project.scripts]
 epuc-academic-assignment = "main:main"
-epuc-reset-local-state = "scripts.reset_local_state:main"
 
 [tool.setuptools]
 packages = [
@@ -29,7 +28,6 @@ packages = [
     "frontend.views",
     "frontend.widgets",
     "persistence",
-    "scripts",
 ]
 py-modules = ["main"]
 include-package-data = true
@@ -38,16 +36,13 @@ include-package-data = true
 config = [
     "config/frontend_texts.json",
     "config/frontend_visual.json",
-    "config/owner.example.json",
-]
-"data/public" = [
-    "data/public/approved_users.json",
-    "data/public/notifications_error.json",
-    "data/public/tables_index.json",
 ]
 "data/public/catalogs" = [
     "data/public/catalogs/academic_profiles.csv",
     "data/public/catalogs/academic_staff.csv",
+]
+"data/public/tables" = [
+    "data/public/tables/Academic.csv",
 ]
 
 [tool.pytest.ini_options]
@@ -59,7 +54,6 @@ target-version = "py314"
 line-length = 88
 extend-exclude = [
     ".venv",
-    "design.prototipe",
 ]
 
 [tool.ruff.lint]

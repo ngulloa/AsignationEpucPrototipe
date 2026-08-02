@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from PySide6.QtCore import Signal
+from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QGridLayout,
@@ -37,7 +38,6 @@ from frontend.widgets import (
     PageTitle,
     ResultBanner,
     Surface,
-    add_page_footer,
 )
 
 SubmissionCallback = Callable[..., SubmissionResult]
@@ -53,7 +53,6 @@ class AcademicFormView(QWidget):
     cancel_requested = Signal()
     submission_succeeded = Signal(str)
     logout_requested = Signal()
-    error_requested = Signal(str)
 
     def __init__(
         self,
@@ -70,8 +69,8 @@ class AcademicFormView(QWidget):
         self._submit_callback = submit_callback
         self._default_update_callback = update_callback
         self._active_update_callback = update_callback
+        self.field_labels: dict[str, QLabel] = {}
         self.field_error_labels: dict[str, QLabel] = {}
-        self._latest_error = settings.texts.messages["save_error"]
         self._editing_id: str | None = None
         self._historical_warning_active = False
         self.setObjectName("academicFormView")
@@ -84,7 +83,7 @@ class AcademicFormView(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        self.header = AppHeader(self.settings, username="usuario", show_logout=True)
+        self.header = AppHeader(self.settings, username="", show_logout=True)
         self.header.logout_requested.connect(self.logout_requested)
         root.addWidget(self.header)
 
@@ -107,7 +106,7 @@ class AcademicFormView(QWidget):
         panel_layout.setSpacing(spacing["medium"])
 
         fields = QGridLayout()
-        fields.setHorizontalSpacing(spacing["medium"])
+        fields.setHorizontalSpacing(spacing["small"])
         fields.setVerticalSpacing(spacing["small"])
         control_height = spacing["large"] + spacing["medium"]
         self.name_input = self._line_edit(control_height)
@@ -146,8 +145,9 @@ class AcademicFormView(QWidget):
             self._add_field(fields, name, control, row, 0)
         for name, control, row in right_controls:
             self._add_field(fields, name, control, row, 3)
-        fields.setColumnStretch(1, 3)
-        fields.setColumnMinimumWidth(2, visual.margins["page"])
+        fields.setColumnStretch(1, 5)
+        fields.setColumnMinimumWidth(1, 200)
+        fields.setColumnMinimumWidth(2, 0)
         fields.setColumnStretch(4, 2)
         panel_layout.addLayout(fields)
         panel_layout.addStretch()
@@ -172,10 +172,15 @@ class AcademicFormView(QWidget):
         buttons.addStretch()
         panel_layout.addLayout(buttons)
         body.addWidget(panel, stretch=1)
-        add_page_footer(
-            body, self.settings, lambda: self.error_requested.emit(self._latest_error)
-        )
         root.addLayout(body, stretch=1)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        compact = event.size().width() < 900
+        self.header.institution_label.setVisible(not compact)
+        right_control_width = 140 if compact else 16777215
+        self.weekly_hours_input.setMaximumWidth(right_control_width)
+        self.status_combo.setMaximumWidth(right_control_width)
+        super().resizeEvent(event)
 
     def _line_edit(self, height: int) -> QLineEdit:
         edit = QLineEdit()
@@ -188,6 +193,7 @@ class AcademicFormView(QWidget):
     ) -> None:
         label = QLabel(self.settings.texts.field_labels[name])
         label.setObjectName("fieldLabel")
+        self.field_labels[name] = label
         layout.addWidget(label, row, column)
         layout.addWidget(control, row, column + 1)
         error = QLabel()
@@ -283,13 +289,10 @@ class AcademicFormView(QWidget):
         record: AcademicRecord,
         *,
         update_callback: UpdateCallback | None = None,
-        publication: bool = False,
     ) -> None:
         self._editing_id = record.academic_id
         self._active_update_callback = update_callback or self._default_update_callback
-        self.save_button.setText(
-            "Publicar" if publication else self.settings.texts.button_labels["save"]
-        )
+        self.save_button.setText(self.settings.texts.button_labels["save"])
         self._clear_result()
         self._populate_catalog_combo(
             self.plant_combo,
@@ -415,8 +418,6 @@ class AcademicFormView(QWidget):
             self.result_label.setText("\n".join((result.message, *unknown_errors)))
         if result.success:
             self.submission_succeeded.emit(result.message)
-        else:
-            self._latest_error = result.message
 
     def _confirm_duplicate_overwrite(self, message: str) -> bool:
         dialog = QMessageBox(self)

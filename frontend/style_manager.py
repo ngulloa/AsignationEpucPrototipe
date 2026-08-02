@@ -181,8 +181,11 @@ class StyleManager:
                 background-color: {colors["brand_blue"]};
             }}
             QPushButton#primaryButton:disabled {{
-                background-color: {colors["brand_light_blue"]};
-                color: {colors["neutral_white"]};
+                background-color: {colors["neutral_gray_300"]};
+                color: {colors["neutral_gray_700"]};
+            }}
+            QPushButton#primaryButton:focus {{
+                border: {focus_border.width}px solid {colors["brand_yellow"]};
             }}
             QPushButton#secondaryButton {{
                 background-color: {colors["neutral_white"]};
@@ -193,9 +196,15 @@ class StyleManager:
                 border: {focus_border.width}px solid {focus_color};
             }}
             QPushButton#secondaryButton:disabled {{
-                background-color: {colors["neutral_white"]};
-                color: {colors["brand_light_blue"]};
-                border: {control_border.width}px solid {colors["neutral_gray_200"]};
+                background-color: {colors["neutral_gray_50"]};
+                color: {colors["neutral_gray_500"]};
+                border: {control_border.width}px solid {colors["neutral_gray_300"]};
+            }}
+            QPushButton#secondaryButton:focus {{
+                border: {focus_border.width}px solid {focus_color};
+            }}
+            QPushButton#headerLink:focus, QPushButton#linkButton:focus {{
+                border: {focus_border.width}px solid {colors["brand_yellow"]};
             }}
             QPushButton#linkButton {{
                 background: transparent;
@@ -324,7 +333,7 @@ class StyleManager:
         widget.setGraphicsEffect(effect)
 
     def apply_interaction_defaults(self, root: QWidget) -> None:
-        """Apply centralized pointer feedback to current and future buttons."""
+        """Apply centralized pointer feedback to all buttons."""
         application = QApplication.instance()
         if application is None:
             raise RuntimeError("Se requiere QApplication para configurar cursores.")

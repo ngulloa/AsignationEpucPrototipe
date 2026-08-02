@@ -13,7 +13,7 @@ from persistence.settings_repository import load_application_settings
 
 
 def build_production_application_window(*, paths: object | None = None) -> MainWindow:
-    """Compose the unchanged frontend with the productive local backend."""
+    """Compose the active frontend with the productive local backend."""
     application = (
         build_application_service()
         if paths is None

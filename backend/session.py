@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from backend.system_contracts import AuthenticatedSession
+from backend.contracts import AuthenticatedSession
 
 
 class SessionMemory(Protocol):

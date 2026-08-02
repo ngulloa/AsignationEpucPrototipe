@@ -128,7 +128,6 @@ def test_frontend_and_main_do_not_import_persistence_or_git_implementations() ->
         "persistence",
         "backend.git_sync",
         "backend.authentication",
-        "backend.approval",
     }
     for path in production_paths:
         imports = _imported_modules(path)

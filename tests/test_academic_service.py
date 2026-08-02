@@ -349,7 +349,7 @@ def test_incompatible_plant_profile_is_rejected_by_backend(
         ({"profile": "Estándar"}, AcademicErrorCode.INVALID_PROFILE, "profile"),
     ],
 )
-def test_legacy_or_arbitrary_catalog_keys_are_not_accepted_for_new_writes(
+def test_historical_or_arbitrary_catalog_keys_are_not_accepted_for_new_writes(
     valid_form: AcademicFormData,
     changes: dict[str, str],
     code: AcademicErrorCode,

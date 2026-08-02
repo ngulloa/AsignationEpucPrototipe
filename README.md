@@ -1,149 +1,126 @@
 # Sistema de asignación de carga académica
 
-Aplicación de escritorio para administrar tablas académicas personales, compartirlas con usuarios aprobados, gestionar aprobaciones y sincronizar los datos compartidos mediante Git.
+Aplicación de escritorio PySide6 para autenticación local, consulta y edición
+del registro académico global, y sincronización Git exclusiva de
+`data/public/tables/Academic.csv`.
 
-La [auditoría técnica y guía de continuidad](docs/AUDITORIA_TECNICA.md) documenta la arquitectura, los esquemas, la UX/UI, los riesgos y los procedimientos para extender el proyecto.
+## Instalación
 
-## Requisitos
-
-- Python 3.14 (`>=3.14,<3.15`).
-- Git instalado.
-- Una copia local del repositorio privado, con la rama de trabajo y el remoto `origin` configurados.
-- Acceso de lectura y escritura al repositorio según las tareas que realizará cada persona.
-
-## Instalación con entorno virtual
-
-En Windows (PowerShell):
-
-```powershell
-py -3.14 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
-copy config\owner.example.json config\owner.local.json
-```
-
-En macOS o Linux:
+Requiere Python 3.14 y Git. Desde la raíz del checkout:
 
 ```bash
 python3.14 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
-cp config/owner.example.json config/owner.local.json
+python -m pip install -e .
 ```
 
-Edite `config/owner.local.json` y reemplace el valor nulo de `username` por el nombre de la cuenta propietaria.
+En PowerShell, la activación equivalente es:
 
-Como alternativa, con Miniconda:
+```powershell
+py -3.14 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e .
+```
+
+Para instalar también pytest, pytest-qt y Ruff:
 
 ```bash
-conda create -n epuc python=3.14
-conda activate epuc
 python -m pip install -e ".[dev]"
 ```
 
-Luego cree `config/owner.local.json` desde el ejemplo como se indicó arriba.
-
-## Uso
-
-Desde la raíz del repositorio:
+## Ejecución
 
 ```bash
 python main.py
 ```
 
-Para ejecutar las pruebas:
+La instalación expone además el comando `epuc-academic-assignment`.
+
+## Autenticación local
+
+El registro crea una cuenta y abre inmediatamente su sesión. Los nombres de
+usuario se normalizan a minúsculas y admiten letras ASCII, números, punto,
+guion y guion bajo. La contraseña debe tener entre 4 y 8 caracteres.
+
+Las cuentas se guardan en `data/local/users.json`. El archivo contiene material
+de verificación scrypt, nunca la contraseña, y se reemplaza atómicamente con
+permisos locales `0600`. La sesión vive solo durante el proceso y se elimina al
+cerrarla.
+
+## Acciones de Inicio
+
+Inicio presenta exactamente cinco acciones, en este orden:
+
+1. `Asignar carga`: visible y deshabilitada.
+2. `Académicos`: abre el registro global, permite agregar y editar registros.
+3. `Asignaciones`: visible y deshabilitada.
+4. `Bajar información`: consulta `origin/main` y descarga cambios autorizados.
+5. `Subir información`: publica cambios locales autorizados.
+
+Las operaciones Git se ejecutan fuera del hilo de la interfaz. Mientras una
+está en curso, las cinco acciones y el cierre de sesión quedan temporalmente
+deshabilitados.
+
+## Academic.csv
+
+La única persistencia académica es:
+
+```text
+data/public/tables/Academic.csv
+```
+
+Su cabecera es exacta y sensible a mayúsculas:
+
+```csv
+academic_id,rut,name,plant,profile,weekly_hours,status
+```
+
+- `academic_id`: identificador estable y no vacío.
+- `rut`: RUT chileno válido; se guarda en formato canónico y no se duplica.
+- `name`: nombre del académico.
+- `plant`: clave vigente del catálogo de plantas.
+- `profile`: clave vigente y compatible del catálogo de perfiles.
+- `weekly_hours`: entero con signo.
+- `status`: `Activo`, `Inactivo`, `Sabático` o `Terminado`.
+
+Los catálogos versionados están en
+`data/public/catalogs/academic_staff.csv` y
+`data/public/catalogs/academic_profiles.csv`. La lectura reconoce los aliases
+definidos por la aplicación; toda escritura usa las claves canónicas. El CSV se
+valida completo antes de cada reemplazo atómico.
+
+## Límites de Bajar y Subir
+
+Ambas acciones exigen un checkout Git válido en la rama `main`, con el remoto
+`origin` apuntando al repositorio configurado por la aplicación.
+
+`Bajar información` ejecuta `fetch` y solo admite un avance rápido cuyo rango
+modifique exactamente `data/public/tables/Academic.csv`. Valida el archivo
+remoto antes de avanzar. Si el rango incluye código, configuración, catálogos u
+otra ruta, se detiene y solicita una actualización manual del checkout. También
+se detiene ante cambios locales del CSV o divergencia de ramas.
+
+`Subir información` valida el CSV local, rechaza cualquier cambio staged,
+rastreado o no rastreado fuera de esa ruta, crea un commit con mensaje fijo y
+usa un push no forzado. Si `origin/main` avanzó, exige bajar primero. Si el push
+falla, conserva un único commit verificado para reintentar el mismo envío.
+
+Estas acciones no resuelven conflictos, no mezclan ramas, no actualizan código,
+no sincronizan catálogos y no ejecutan force push.
+
+## Datos que no deben versionarse
+
+No deben incorporarse al repositorio:
+
+- `data/local/` y su archivo de cuentas;
+- contraseñas, tokens, claves y credenciales Git;
+- entornos virtuales, cachés, logs, estados temporales ni capturas de revisión;
+- archivos `.corrupt.*`, `.tmp`, respaldos o exportaciones locales.
+
+Para verificar el producto durante el desarrollo:
 
 ```bash
 python -m pytest -q
+ruff check .
+ruff format --check .
 ```
-
-La instalación también expone `epuc-academic-assignment` como punto de entrada.
-Los recursos de configuración predeterminada, catálogos y documentos públicos
-vacíos forman parte del paquete. Una instalación no editable los resuelve desde
-la raíz de su entorno virtual.
-
-## Reinicio seguro del estado local
-
-El único comando administrativo de limpieza trabaja con una lista blanca y no
-modifica nada por defecto:
-
-```bash
-.venv/bin/python -m scripts.reset_local_state --dry-run
-```
-
-Para aplicar un plan no vacío se exige un respaldo fuera del repositorio:
-
-```bash
-.venv/bin/python -m scripts.reset_local_state \
-  --apply \
-  --backup-dir /ruta/externa/respaldo-fechado
-```
-
-El comando respalda y verifica antes de cambiar rutas, no sigue enlaces
-simbólicos y solo reinicia `users/`, la configuración propietaria local, las
-tablas públicas y los tres registros públicos. Conserva los catálogos y la
-configuración predeterminada. Es seguro volver a ejecutarlo.
-
-El botón **Actualizar** recibe cambios remotos mediante avance rápido y publica la tabla personal del usuario junto con los datos compartidos pendientes. La operación requiere una cuenta aprobada y un repositorio Git válido.
-
-Los datos privados se guardan bajo `users/<usuario>/`. Las aprobaciones, tablas publicadas y notificaciones compartidas se guardan bajo `data/public/`.
-El repositorio distribuible parte sin usuarios ni propietario local, y con los
-tres registros públicos vacíos en sus esquemas vigentes.
-
-## Integridad académica del MVP
-
-Las tablas versionadas `data/public/catalogs/academic_staff.csv` y
-`academic_profiles.csv` son la única fuente de verdad para plantas, perfiles y
-proporciones. La interfaz obtiene sus opciones desde backend. Las claves de
-compatibilidad siguen siendo `Ordinaria`, `Especial`, `Investigador`, `Mixto`,
-`Standard`, `Docente` y `Gestión`, pero los CSV productivos referencian IDs
-estables independientes de esas etiquetas. Los estados `Activo`, `Inactivo`,
-`Sabático` y `Terminado` siguen siendo una decisión provisional del MVP.
-
-Las tablas personales y públicas usan `academics.csv` con
-`academic_id,rut,name,email,status` y un acompañante de nombramientos con
-`appointment_id,academic_id,profile_id,weekly_hours,start_date,end_date`. Correo
-y fechas pueden quedar vacíos y todavía no se editan en la interfaz. Qt consume
-una proyección aplanada creada en backend, no realiza uniones ni lee catálogos.
-
-La lectura conserva compatibilidad con valores reconocibles del prototipo: por ejemplo, `Mixta` se interpreta como `Especial`, `Estandar`/`Estándar` como `Standard`, y variantes sin tilde de `Gestión` o `Sabático` se normalizan en memoria. Leer no reescribe el CSV. Una combinación histórica hoy incompatible se muestra con una advertencia y debe corregirse antes de guardarse.
-
-Al crear con un RUT duplicado, el formulario solicita `Cancelar` o `Sobrescribir`. Sobrescribir requiere una confirmación explícita ligada al identificador y a una huella del registro advertido; el backend vuelve a validar todo, rechaza confirmaciones obsoletas y conserva el `academic_id` existente mediante reemplazo atómico.
-
-Para revisar migraciones v1 sin escribir:
-
-```bash
-.venv/bin/python -m scripts.migrate_academic_datasets
-```
-
-La aplicación exige `--apply --backup-dir <directorio>` para aplicarlas. El
-procedimiento y sus decisiones están en
-[ADR-002](docs/decisions/ADR-002-academic-aggregate-v2.md).
-
-No versione `config/owner.local.json`, contraseñas, credenciales ni estados locales. En este MVP, los permisos de la aplicación no sustituyen los permisos del repositorio privado: el acceso efectivo también depende de la autorización configurada en Git.
-
-## Privacidad y preparación de cambios
-
-Las notificaciones v3 exigen una descripción normalizada de hasta 1000
-caracteres. La aplicación rechaza patrones que aparentan incluir contraseñas,
-tokens, claves API, encabezados de autorización, claves privadas, URLs con
-credenciales, rutas personales completas o trazas completas. Esta detección es
-una reducción defensiva del riesgo y no garantiza identificar todos los
-secretos; nunca deben copiarse credenciales, rutas personales ni trazas.
-
-`Guardar` modifica exclusivamente los dos CSV académicos privados del usuario.
-`Compartir tabla` exige un nombre único, prepara el agregado de dos CSV más su
-entrada de índice y registra una operación privada, pero no ejecuta Git ni
-afirma una publicación remota. `Actualizar` publica tablas personales
-preparadas; `Publicar` hace lo mismo con un borrador de edición pública. Ambos
-corren fuera del hilo Qt, usan fast-forward seguro y conservan el commit para un
-reintento exacto cuando falla el push. Los estados y límites se documentan en
-[ADR-003](docs/decisions/ADR-003-public-table-publication.md).
-
-Una solicitud de aprobación pendiente puede retirarse lógicamente sólo por su
-titular. No se borra y conserva autor y fecha del retiro. La política para volver
-a solicitar aprobación después de un retiro no está definida todavía y queda
-registrada como decisión pendiente; el flujo actual no crea una segunda
-solicitud automáticamente.

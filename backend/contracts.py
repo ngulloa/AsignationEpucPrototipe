@@ -1,36 +1,10 @@
 """Typed data contracts shared by the application layers."""
 
 from dataclasses import dataclass, field
-from datetime import date
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 
-from backend.rut_validator import canonicalize_rut, is_valid_rut, normalize_rut
-
 ACADEMIC_STATUSES = ("Activo", "Inactivo", "Sabático", "Terminado")
-
-
-@dataclass(frozen=True, slots=True)
-class Academic:
-    """Academic identity and personal attributes, independent of appointments."""
-
-    academic_id: str
-    rut: str
-    name: str
-    email: str | None = None
-    status: str = ""
-
-    def __post_init__(self) -> None:
-        if not self.academic_id:
-            raise ValueError("El identificador académico es obligatorio.")
-        normalized_rut = normalize_rut(self.rut)
-        if not is_valid_rut(normalized_rut):
-            raise ValueError("El RUT académico no es válido.")
-        object.__setattr__(self, "rut", canonicalize_rut(normalized_rut))
-        if self.status not in ACADEMIC_STATUSES:
-            raise ValueError("El estado académico no es válido.")
-        if self.email == "":
-            object.__setattr__(self, "email", None)
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,72 +59,6 @@ class AcademicProfile:
 
 
 @dataclass(frozen=True, slots=True)
-class AcademicAppointment:
-    """Historical academic appointment; it is not an activity assignment."""
-
-    appointment_id: str
-    academic_id: str
-    profile_id: str
-    weekly_hours: int
-    start_date: date | None = None
-    end_date: date | None = None
-
-    def __post_init__(self) -> None:
-        if not self.appointment_id or not self.academic_id or not self.profile_id:
-            raise ValueError("El nombramiento requiere todos sus identificadores.")
-        if type(self.weekly_hours) is not int:
-            raise TypeError("La jornada semanal debe ser un entero.")
-        if (
-            self.start_date is not None
-            and self.end_date is not None
-            and self.end_date < self.start_date
-        ):
-            raise ValueError("La fecha de término no puede anteceder al inicio.")
-
-    def is_current(self, on_date: date | None = None) -> bool:
-        """Return whether this appointment is effective on the supplied date."""
-        reference = on_date or date.today()
-        return (self.start_date is None or self.start_date <= reference) and (
-            self.end_date is None or self.end_date >= reference
-        )
-
-
-class AmbiguousAcademicAppointmentsError(ValueError):
-    """More than one appointment could feed the current UI projection."""
-
-
-@dataclass(frozen=True, slots=True)
-class AcademicAggregate:
-    """Academic identity together with its complete appointment history."""
-
-    academic: Academic
-    appointments: tuple[AcademicAppointment, ...]
-
-    def __post_init__(self) -> None:
-        identifiers: set[str] = set()
-        for appointment in self.appointments:
-            if appointment.academic_id != self.academic.academic_id:
-                raise ValueError("El nombramiento pertenece a otro académico.")
-            if appointment.appointment_id in identifiers:
-                raise ValueError("El historial contiene nombramientos duplicados.")
-            identifiers.add(appointment.appointment_id)
-
-    def current_appointment(
-        self, on_date: date | None = None
-    ) -> AcademicAppointment | None:
-        current = tuple(
-            appointment
-            for appointment in self.appointments
-            if appointment.is_current(on_date)
-        )
-        if len(current) > 1:
-            raise AmbiguousAcademicAppointmentsError(
-                "El académico posee más de un nombramiento vigente."
-            )
-        return current[0] if current else None
-
-
-@dataclass(frozen=True, slots=True)
 class AcademicFormData:
     """Unvalidated data collected by the academic form."""
 
@@ -164,7 +72,7 @@ class AcademicFormData:
 
 @dataclass(frozen=True, slots=True)
 class AcademicRecord:
-    """Flattened compatibility projection consumed by the existing Qt UI."""
+    """Sole persisted academic entity consumed by the active application."""
 
     academic_id: str
     rut: str
@@ -209,3 +117,18 @@ class SubmissionResult:
 
 class AcademicListingError(RuntimeError):
     """Application-level error raised when persisted academics cannot be listed."""
+
+
+@dataclass(frozen=True, slots=True)
+class AuthenticatedSession:
+    """Identity held by the process-local session after authentication."""
+
+    username: str
+
+
+@dataclass(frozen=True, slots=True)
+class UpdateResult:
+    """Observable result of a requested Academic.csv synchronization."""
+
+    changed: bool
+    message: str

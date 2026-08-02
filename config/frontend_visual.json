@@ -2,12 +2,8 @@
   "schema_version": 1,
   "colors": {
     "brand_yellow": "#FEC60D",
-    "brand_dark_blue": "#03122E",
     "brand_light_blue": "#0176DE",
     "brand_blue": "#173F8A",
-    "brand_dark_yellow": "#E3AE00",
-    "semantic_warning": "#E3AE00",
-    "semantic_information": "#0176DE",
     "semantic_success": "#00AA00",
     "semantic_error": "#F24F4F",
     "neutral_gray_500": "#9C9C9C",
@@ -58,32 +54,11 @@
     "academic_form": {
       "width": 1080,
       "height": 768
-    },
-    "approval": {
-      "width": 1080,
-      "height": 768
-    },
-    "error_notification": {
-      "width": 1080,
-      "height": 768
-    },
-    "update": {
-      "width": 1080,
-      "height": 768
-    },
-    "alerts": {
-      "width": 1080,
-      "height": 768
     }
-  },
-  "validation_viewport": {
-    "width": 768,
-    "height": 768
   },
   "margins": {
     "page": 48,
-    "section": 32,
-    "control": 16
+    "section": 32
   },
   "spacing": {
     "extra_small": 4,
@@ -93,9 +68,7 @@
     "extra_large": 32
   },
   "radii": {
-    "small": 4,
-    "medium": 8,
-    "large": 16
+    "small": 4
   },
   "borders": {
     "control": {

@@ -1,4 +1,4 @@
-"""Backend boundary for future local authentication."""
+"""Backend boundary for local authentication."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import hashlib
 import hmac
 import secrets
 
+from backend.contracts import AuthenticatedSession
 from backend.session import SessionMemory
-from backend.system_contracts import AuthenticatedSession
 from persistence.paths import normalize_username
 from persistence.user_repository import (
     JsonUserRepository,

@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QPushButton,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -68,34 +66,3 @@ class ResultBanner(QLabel):
     def clear_result(self) -> None:
         self.clear()
         self.hide()
-
-
-class ErrorLinkFooter(QWidget):
-    """Footer action present on every page, including the error form itself."""
-
-    requested = Signal()
-
-    def __init__(
-        self,
-        settings: ApplicationSettings,
-        parent: QWidget | None = None,
-    ) -> None:
-        super().__init__(parent)
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addStretch()
-        self.button = QPushButton(settings.texts.button_labels["notify_error"])
-        self.button.setObjectName("linkButton")
-        self.button.clicked.connect(self.requested)
-        layout.addWidget(self.button)
-
-
-def add_page_footer(
-    layout: QVBoxLayout,
-    settings: ApplicationSettings,
-    callback: object,
-) -> ErrorLinkFooter:
-    footer = ErrorLinkFooter(settings)
-    footer.requested.connect(callback)  # type: ignore[arg-type]
-    layout.addWidget(footer)
-    return footer
