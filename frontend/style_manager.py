@@ -99,6 +99,10 @@ class StyleManager:
                 font-family: "{self.font_family}";
                 font-size: {sizes["body"]}px;
             }}
+            QLabel {{
+                background: transparent;
+                color: {colors["neutral_black"]};
+            }}
             #appHeader {{
                 background-color: {colors["brand_blue"]};
             }}
@@ -246,6 +250,10 @@ class StyleManager:
                 background-color: {colors["neutral_white"]};
                 color: {colors["neutral_gray_500"]};
             }}
+            QComboBox:disabled {{
+                background-color: {colors["neutral_white"]};
+                color: {colors["neutral_gray_500"]};
+            }}
             QLineEdit[sizeRole="form"], QComboBox[sizeRole="form"],
             QSpinBox[sizeRole="form"] {{
                 font-size: {sizes["subtitle"]}px;
@@ -253,6 +261,18 @@ class StyleManager:
             QComboBox::drop-down, QSpinBox::up-button, QSpinBox::down-button {{
                 border: none;
                 background-color: {colors["neutral_white"]};
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {colors["neutral_white"]};
+                color: {colors["neutral_gray_700"]};
+                border: {control_border.width}px solid {control_color};
+                outline: none;
+                selection-background-color: {colors["brand_light_blue"]};
+                selection-color: {colors["neutral_white"]};
+            }}
+            QComboBox QAbstractItemView::item:selected {{
+                background-color: {colors["brand_light_blue"]};
+                color: {colors["neutral_white"]};
             }}
             QTableWidget {{
                 background-color: {colors["neutral_white"]};
