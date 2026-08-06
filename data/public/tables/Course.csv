@@ -1,1 +1,106 @@
 course_id,course_code,name,level_id,active
+course-ees1500-v1,EES1500,Tecnologías Inclusivas para el Aprendizaje,course-level-undergraduate-v1,true
+course-psb408-v1,PSB408,Cultura y Sociedad Latinoamericana,course-level-undergraduate-v1,true
+course-psg001-v1,PSG001,Lengua de Señas Chilena: la Comunidad Sorda y su Cultura,course-level-undergraduate-v1,true
+course-psi1100-v1,PSI1100,Taller de Integración I,course-level-undergraduate-v1,true
+course-psi1101-v1,PSI1101,Procesos Psicológicos Básicos,course-level-undergraduate-v1,true
+course-psi1104-v1,PSI1104,Psicología del Desarrollo I,course-level-undergraduate-v1,true
+course-psi1106-v1,PSI1106,Juego y Creatividad,course-level-undergraduate-v1,true
+course-psi1107-v1,PSI1107,Convivencia Escolar y Aprendizaje Socioemocional,course-level-undergraduate-v1,true
+course-psi1200-v1,PSI1200,Taller de Integración II,course-level-undergraduate-v1,true
+course-psi1203-v1,PSI1203,Metodologías de Investigación en Psicología,course-level-undergraduate-v1,true
+course-psi1204-v1,PSI1204,Fundamentos Biológicos del Comportamiento,course-level-undergraduate-v1,true
+course-psi1205-v1,PSI1205,Psicología Social,course-level-undergraduate-v1,true
+course-psi1206-v1,PSI1206,Teorías Sociales en Psicología,course-level-undergraduate-v1,true
+course-psi2300-v1,PSI2300,Métodos de Investigación Cualitativa,course-level-undergraduate-v1,true
+course-psi2303-v1,PSI2303,Psicoanálisis,course-level-undergraduate-v1,true
+course-psi2307-v1,PSI2307,Teoría de Sistemas,course-level-undergraduate-v1,true
+course-psi2308-v1,PSI2308,"Inteligencia, Pensamiento y Lenguaje",course-level-undergraduate-v1,true
+course-psi2309-v1,PSI2309,Afectividad y Motivación,course-level-undergraduate-v1,true
+course-psi2402-v1,PSI2402,Psicopatología Infanto-Juvenil,course-level-undergraduate-v1,true
+course-psi2405-v1,PSI2405,Evaluación Psicológica II,course-level-undergraduate-v1,true
+course-psi2406-v1,PSI2406,Iniciación Profesional a la Psicología Clínica,course-level-undergraduate-v1,true
+course-psi2407-v1,PSI2407,Iniciación Profesional a la Psicología Educacional,course-level-undergraduate-v1,true
+course-psi2408-v1,PSI2408,Iniciación Profesional a la Psicología Laboral-Organizacional,course-level-undergraduate-v1,true
+course-psi2409-v1,PSI2409,Iniciación Profesional a la Psicología de la Salud,course-level-undergraduate-v1,true
+course-psi2410-v1,PSI2410,Iniciación Profesional a la Psicología Comunitaria,course-level-undergraduate-v1,true
+course-psi2424-v1,PSI2424,Práctica de Investigación en Ciencia Psicológica,course-level-undergraduate-v1,true
+course-psi2436-v1,PSI2436,Psicología Aplicada a Emergencias y Desastres,course-level-undergraduate-v1,true
+course-psi2437-v1,PSI2437,Desigualdad de Género: Antecedentes y Consecuencias Psicosociales,course-level-undergraduate-v1,true
+course-psi2445-v1,PSI2445,Perspectivas Actuales en Neuropsicología,course-level-undergraduate-v1,true
+course-psi2448-v1,PSI2448,"Psicología, Discapacidad e Inclusión",course-level-undergraduate-v1,true
+course-psi2509-v1,PSI2509,Práctica en Psicología de la Salud,course-level-undergraduate-v1,true
+course-psi2518-v1,PSI2518,Práctica en Psicología Laboral,course-level-undergraduate-v1,true
+course-psi2530-v1,PSI2530,Práctica en Psicología Comunitaria,course-level-undergraduate-v1,true
+course-psi2537-v1,PSI2537,Práctica en Psicología Educacional,course-level-undergraduate-v1,true
+course-psi2546-v1,PSI2546,Práctica en Psicología Clínica,course-level-undergraduate-v1,true
+course-psi3003-v1,PSI3003,Comunicación en Salud,course-level-postgraduate-v1,true
+course-psi3040-v1,PSI3040,Dirección Estratégica de Personas,course-level-postgraduate-v1,true
+course-psi3041-v1,PSI3041,Medición y Métricas de Recursos Humanos,course-level-postgraduate-v1,true
+course-psi3047-v1,PSI3047,Intervenciónes Clínicas en Terapia de Pareja desde una Perspectiva Sistémica Integrativa,course-level-postgraduate-v1,true
+course-psi3048-v1,PSI3048,"Psicología Comunitaria y la ""Orientación a la Recuperación""",course-level-undergraduate-v1,true
+course-psi3504-v1,PSI3504,Psicología del Aprendizaje y la Enseñanza II,course-level-postgraduate-v1,true
+course-psi3505-v1,PSI3505,Investigación en Psicología Educacional,course-level-postgraduate-v1,true
+course-psi3564-v1,PSI3564,Promoción y Prevención de Salud en Niños y Adolescentes,course-level-postgraduate-v1,true
+course-psi3568-v1,PSI3568,Promoción y Prevención de Salud en el Trabajo,course-level-postgraduate-v1,true
+course-psi3586-v1,PSI3586,Evaluación de Programas y Proyectos Sociales,course-level-undergraduate-v1,true
+course-psi3600-v1,PSI3600,Trabajo de Grado I,course-level-postgraduate-v1,true
+course-psi3643-v1,PSI3643,Trabajo de Grado II,course-level-postgraduate-v1,true
+course-psi3644-v1,PSI3644,La Persona del Psicólogo Clínico II,course-level-postgraduate-v1,true
+course-psi3645-v1,PSI3645,Teoría y Práctica de la Intervención Clínica,course-level-postgraduate-v1,true
+course-psi3647-v1,PSI3647,Modalidades de Atención en Psicología Clínica,course-level-postgraduate-v1,true
+course-psi3648-v1,PSI3648,Métodos de Investigación en Psicología Clínica y Psicoterapia,course-level-postgraduate-v1,true
+course-psi3650-v1,PSI3650,Problemas Clínicos Relevantes Infanto - Juveniles,course-level-postgraduate-v1,true
+course-psi3659-v1,PSI3659,Psicoterapia Basada en la Mentalización para Niños/AS,course-level-postgraduate-v1,true
+course-psi3660-v1,PSI3660,Salud y Bienestar Integral: Integrando Nuevos Saberes a Nuestra Práctica Profesional,course-level-postgraduate-v1,true
+course-psi3661-v1,PSI3661,Métodos de Investigación en Psicología de la Salud,course-level-postgraduate-v1,true
+course-psi3665-v1,PSI3665,Integración Teórico-Práctica en Psicología de la Salud,course-level-postgraduate-v1,true
+course-psi3666-v1,PSI3666,Mindfulness y Sus Aplicaciones en Salud,course-level-postgraduate-v1,true
+course-psi3670-v1,PSI3670,Evaluación Psicológica Infantil,course-level-postgraduate-v1,true
+course-psi3703-v1,PSI3703,Capacitación de Personas,course-level-postgraduate-v1,true
+course-psi3706-v1,PSI3706,Comunicación Organizacional,course-level-postgraduate-v1,true
+course-psi3716-v1,PSI3716,Aprendizaje y Educación de Adultos,course-level-postgraduate-v1,true
+course-psi3801-v1,PSI3801,Tesis II,course-level-postgraduate-v1,true
+course-psi3806-v1,PSI3806,Trabajo de Grado I,course-level-postgraduate-v1,true
+course-psi3807-v1,PSI3807,Trabajo de Grado II,course-level-postgraduate-v1,true
+course-psi3814-v1,PSI3814,Tesis I,course-level-postgraduate-v1,true
+course-psi3815-v1,PSI3815,Tesis II,course-level-postgraduate-v1,true
+course-psi4010-v1,PSI4010,Desarrollos en Psicología Evolutiva,course-level-postgraduate-v1,true
+course-psi4013-v1,PSI4013,Examen General de Fundamentos de la Ciencia Psicológica,course-level-postgraduate-v1,true
+course-psi4015-v1,PSI4015,Seminario de Profundización Metodológico II,course-level-postgraduate-v1,true
+course-psi4017-v1,PSI4017,Proyecto de Tesis Doctoral II,course-level-postgraduate-v1,true
+course-psi4019-v1,PSI4019,Tesis Doctoral II,course-level-postgraduate-v1,true
+course-psi4020-v1,PSI4020,Examen de Candidatura,course-level-postgraduate-v1,true
+course-psi4022-v1,PSI4022,Métodos Experimentales en Electrofisiología Humana,course-level-postgraduate-v1,true
+course-psi4029-v1,PSI4029,Pasantía Doctoral en Psicología,course-level-postgraduate-v1,true
+course-psi4030-v1,PSI4030,Tesis en Neurociencias I,course-level-postgraduate-v1,true
+course-psi4032-v1,PSI4032,Tesis en Neurociencias III,course-level-postgraduate-v1,true
+course-psi4034-v1,PSI4034,Tesis en Neurociencias V,course-level-postgraduate-v1,true
+course-psi4036-v1,PSI4036,Metodología Cuantitativa Avanzada II,course-level-postgraduate-v1,true
+course-psi4037-v1,PSI4037,Metodología Cualitativa Avanzada I,course-level-postgraduate-v1,true
+course-psi4039-v1,PSI4039,Práctica en Investigación II,course-level-postgraduate-v1,true
+course-psi4040-v1,PSI4040,Actividad Anual de Seguimiento I,course-level-postgraduate-v1,true
+course-psi4041-v1,PSI4041,Actividad Anual de Seguimiento II,course-level-postgraduate-v1,true
+course-psi4043-v1,PSI4043,Tesis Doctoral IV,course-level-postgraduate-v1,true
+course-psi4044-v1,PSI4044,Autoría Artículo Científico en Psicología,course-level-postgraduate-v1,true
+course-psi4048-v1,PSI4048,Modelos de Variables Latentes en Psicometría,course-level-postgraduate-v1,true
+course-psi5002-v1,PSI5002,Análisis Cualitativo y Cuantitativo Aplicado a la Gestión de Recursos Humanos,course-level-postgraduate-v1,true
+course-psi6009-v1,PSI6009,Coloquio Doctoral IV,course-level-postgraduate-v1,true
+course-psi6011-v1,PSI6011,Coloquio Doctoral VI,course-level-postgraduate-v1,true
+course-psi6016-v1,PSI6016,Tesis Doctoral III,course-level-postgraduate-v1,true
+course-psi6018-v1,PSI6018,Tesis Doctoral V,course-level-postgraduate-v1,true
+course-psi6023-v1,PSI6023,Actividad Anual de Seguimiento I,course-level-postgraduate-v1,true
+course-psi6024-v1,PSI6024,Actividad Anual de Seguimiento II,course-level-postgraduate-v1,true
+course-psi6025-v1,PSI6025,Autoría Artículo Científico o Patente,course-level-postgraduate-v1,true
+course-psi6026-v1,PSI6026,Pasantía,course-level-postgraduate-v1,true
+course-psm406-v1,PSM406,Tesis I,course-level-postgraduate-v1,true
+course-psm407-v1,PSM407,Tesis II,course-level-postgraduate-v1,true
+course-psm4320-v1,PSM4320,Estudio Dirigido I,course-level-postgraduate-v1,true
+course-psm4322-v1,PSM4322,Estudio Dirigido III,course-level-postgraduate-v1,true
+course-psm448-v1,PSM448,Alumnos con Necesidades Educativas Especiales,course-level-postgraduate-v1,true
+course-pso106-v1,PSO106,Taller de Hábitos para el Trabajo Grupal,course-level-undergraduate-v1,true
+course-pso3000-v1,PSO3000,Introducción a la Clínica de la Intervención en Crisis y Urgencia Subjetiva,course-level-postgraduate-v1,true
+course-pso309-v1,PSO309,Consultoría Organizacional,course-level-undergraduate-v1,true
+course-pso310-v1,PSO310,Clínica Con Adolescentes: Dos Miradas,course-level-undergraduate-v1,true
+course-pso407-v1,PSO407,Trastornos de Personalidad,course-level-undergraduate-v1,true
+course-pso409-v1,PSO409,Desarrollo Infantil y Políticas Públicas: Teoría y Evidencia,course-level-undergraduate-v1,true
