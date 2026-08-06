@@ -1,31 +1,21 @@
 # Sistema de asignación de carga académica
 
-Aplicación de escritorio PySide6 para autenticación local, consulta y edición
-del registro académico global, y sincronización Git exclusiva de
-`data/public/tables/Academic.csv`.
+## Propósito
+
+Prototipo de escritorio para autenticación local, gestión de académicos y
+asignación de carga de cursos mediante una interfaz PySide6.
+
+## Requisitos
+
+- Python 3.14
+- Git, solo para las funciones de sincronización
 
 ## Instalación
-
-Requiere Python 3.14 y Git. Desde la raíz del checkout:
 
 ```bash
 python3.14 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e .
-```
-
-En PowerShell, la activación equivalente es:
-
-```powershell
-py -3.14 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e .
-```
-
-Para instalar también pytest, pytest-qt y Ruff:
-
-```bash
-python -m pip install -e ".[dev]"
 ```
 
 ## Ejecución
@@ -34,93 +24,34 @@ python -m pip install -e ".[dev]"
 python main.py
 ```
 
-La instalación expone además el comando `epuc-academic-assignment`.
+La instalación también crea el comando `epuc-academic-assignment`.
 
-## Autenticación local
+## Estructura mínima de datos
 
-El registro crea una cuenta y abre inmediatamente su sesión. Los nombres de
-usuario se normalizan a minúsculas y admiten letras ASCII, números, punto,
-guion y guion bajo. La contraseña debe tener entre 4 y 8 caracteres.
+`data/public/tables/` contiene identidades y vínculos académicos, períodos,
+cursos, ofertas, asignaciones, autorizaciones y ajustes. Las tablas deben
+conservar sus encabezados aunque no tengan registros.
 
-Las cuentas se guardan en `data/local/users.json`. El archivo contiene material
-de verificación scrypt, nunca la contraseña, y se reemplaza atómicamente con
-permisos locales `0600`. La sesión vive solo durante el proceso y se elimina al
-cerrarla.
+`data/public/catalogs/` contiene los catálogos requeridos por la aplicación,
+incluidas las reglas de carga y la Política V3.
 
-## Acciones de Inicio
+## Almacenamiento local
 
-Inicio presenta exactamente cinco acciones, en este orden:
+Las cuentas se guardan en `data/local/users.json`. Las operaciones CSV crean
+temporalmente bloqueos, staging y respaldos bajo `data/local/` para permitir
+validación transaccional y rollback. Este directorio no se comparte mediante
+Git.
 
-1. `Asignar carga`: visible y deshabilitada.
-2. `Académicos`: abre el registro global, permite agregar y editar registros.
-3. `Asignaciones`: visible y deshabilitada.
-4. `Bajar información`: consulta `origin/main` y descarga cambios autorizados.
-5. `Subir información`: publica cambios locales autorizados.
+## Sincronización
 
-Las operaciones Git se ejecutan fuera del hilo de la interfaz. Mientras una
-está en curso, las cinco acciones y el cierre de sesión quedan temporalmente
-deshabilitados.
+Los controles de subida y bajada sincronizan exclusivamente las tablas
+compartidas autorizadas. Las bajadas aceptan solo avances rápidos, los datos se
+validan antes de aplicarse y los conflictos requieren resolución manual.
 
-## Academic.csv
+## Limitaciones actuales
 
-La única persistencia académica es:
-
-```text
-data/public/tables/Academic.csv
-```
-
-Su cabecera es exacta y sensible a mayúsculas:
-
-```csv
-academic_id,rut,name,plant,profile,weekly_hours,status
-```
-
-- `academic_id`: identificador estable y no vacío.
-- `rut`: RUT chileno válido; se guarda en formato canónico y no se duplica.
-- `name`: nombre del académico.
-- `plant`: clave vigente del catálogo de plantas.
-- `profile`: clave vigente y compatible del catálogo de perfiles.
-- `weekly_hours`: entero con signo.
-- `status`: `Activo`, `Inactivo`, `Sabático` o `Terminado`.
-
-Los catálogos versionados están en
-`data/public/catalogs/academic_staff.csv` y
-`data/public/catalogs/academic_profiles.csv`. La lectura reconoce los aliases
-definidos por la aplicación; toda escritura usa las claves canónicas. El CSV se
-valida completo antes de cada reemplazo atómico.
-
-## Límites de Bajar y Subir
-
-Ambas acciones exigen un checkout Git válido en la rama `main`, con el remoto
-`origin` apuntando al repositorio configurado por la aplicación.
-
-`Bajar información` ejecuta `fetch` y solo admite un avance rápido cuyo rango
-modifique exactamente `data/public/tables/Academic.csv`. Valida el archivo
-remoto antes de avanzar. Si el rango incluye código, configuración, catálogos u
-otra ruta, se detiene y solicita una actualización manual del checkout. También
-se detiene ante cambios locales del CSV o divergencia de ramas.
-
-`Subir información` valida el CSV local, rechaza cualquier cambio staged,
-rastreado o no rastreado fuera de esa ruta, crea un commit con mensaje fijo y
-usa un push no forzado. Si `origin/main` avanzó, exige bajar primero. Si el push
-falla, conserva un único commit verificado para reintentar el mismo envío.
-
-Estas acciones no resuelven conflictos, no mezclan ramas, no actualizan código,
-no sincronizan catálogos y no ejecutan force push.
-
-## Datos que no deben versionarse
-
-No deben incorporarse al repositorio:
-
-- `data/local/` y su archivo de cuentas;
-- contraseñas, tokens, claves y credenciales Git;
-- entornos virtuales, cachés, logs, estados temporales ni capturas de revisión;
-- archivos `.corrupt.*`, `.tmp`, respaldos o exportaciones locales.
-
-Para verificar el producto durante el desarrollo:
-
-```bash
-python -m pytest -q
-ruff check .
-ruff format --check .
-```
+- El dataset inicial no incluye períodos, cursos, ofertas ni asignaciones.
+- Solo la asignación de tipo Curso está habilitada.
+- La Política V3 conserva el estado institucional `PROPOSED`.
+- La sincronización requiere acceso al remoto Git configurado y una identidad
+  Git válida para subir cambios.

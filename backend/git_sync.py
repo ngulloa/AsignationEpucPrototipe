@@ -1,4 +1,4 @@
-"""Git synchronization restricted to the one authoritative academic CSV."""
+"""Git synchronization restricted to normalized shared academic tables."""
 
 from __future__ import annotations
 
@@ -11,20 +11,16 @@ from collections.abc import Callable
 from enum import StrEnum
 from pathlib import Path, PurePosixPath
 
-from backend.academic_catalog import get_academic_catalogs
-from backend.academic_repository import AcademicRepositoryError
 from backend.contracts import UpdateResult
-from persistence.csv_academic_repository import CsvAcademicRepository
-from persistence.paths import ProjectPaths
+from persistence.data_model import SHARED_TABLE_ALLOWLIST, validate_dataset
 
 PRODUCTIVE_REMOTE_URL = "https://github.com/ngulloa/AsignationEpucPrototipe.git"
 REMOTE_NAME = "origin"
 BRANCH_NAME = "main"
 ACADEMIC_PATH = "data/public/tables/Academic.csv"
-COMMIT_MESSAGE = "Actualizar Academic.csv"
+SHARED_COMMIT_MESSAGE = "Actualizar conjunto académico compartido"
 
 RunCommand = Callable[..., subprocess.CompletedProcess[str]]
-CsvValidator = Callable[[Path], object]
 
 
 class GitServiceError(RuntimeError):
@@ -48,7 +44,7 @@ class GitLocalChangesError(GitRepositoryStateError):
 
 
 class GitCodeUpdateRequiredError(GitRepositoryStateError):
-    """The remote range includes something other than Academic.csv."""
+    """The remote range includes something outside the shared table allowlist."""
 
 
 class GitDivergenceError(GitRepositoryStateError):
@@ -64,7 +60,7 @@ class GitLocalAdvanceError(GitRepositoryStateError):
 
 
 class GitCsvValidationError(GitServiceError):
-    """Academic.csv is missing, unsafe, or invalid."""
+    """The shared academic dataset is missing, unsafe, or invalid."""
 
 
 class GitNetworkError(GitServiceError):
@@ -90,10 +86,10 @@ class _Relation(StrEnum):
 
 
 class GitSyncService:
-    """Fetch, fast-forward, commit, and push only ``Academic.csv``.
+    """Fetch, fast-forward, commit, and push only normalized shared tables.
 
-    Production constants are deliberately fixed. Tests inject only a disposable
-    repository root and its expected local remote URL.
+    Production constants are deliberately fixed. The repository root, expected
+    remote URL and command runner remain injectable for isolated validation.
     """
 
     def __init__(
@@ -103,13 +99,11 @@ class GitSyncService:
         expected_remote_url: str | os.PathLike[str] = PRODUCTIVE_REMOTE_URL,
         runner: RunCommand = subprocess.run,
         git_executable: str | None = None,
-        csv_validator: CsvValidator | None = None,
     ) -> None:
         self.root = Path(repository_root).expanduser().resolve(strict=False)
         self.expected_remote_url = os.fspath(expected_remote_url)
         self._runner = runner
         self._configured_git = git_executable
-        self._csv_validator = csv_validator or self._default_csv_validator
         self._pending_commit: str | None = None
 
     @property
@@ -118,10 +112,11 @@ class GitSyncService:
         return self._pending_commit
 
     def download_information(self) -> UpdateResult:
-        """Fetch and fast-forward only when the remote range is exactly the CSV."""
+        """Fetch and fast-forward only shared table changes."""
         executable = self._check_environment()
         self._ensure_download_target_is_clean(executable)
-        unrelated_before = self._worktree_changes(executable) - {ACADEMIC_PATH}
+        allowed = self._allowed_paths()
+        unrelated_before = self._worktree_changes(executable) - allowed
         local_revision = self._revision(executable, "HEAD")
         self._fetch(executable)
         remote_revision = self._remote_revision(executable)
@@ -153,12 +148,12 @@ class GitSyncService:
             local_revision,
             remote_revision,
         )
-        if changed_paths != {ACADEMIC_PATH}:
+        if not changed_paths or not changed_paths <= allowed:
             raise GitCodeUpdateRequiredError(
                 "La actualización remota incluye código, configuración, catálogos "
                 "u otra ruta. La aplicación necesita una actualización manual de código."
             )
-        self._validate_revision_csv(executable, remote_revision)
+        self._validate_revision(executable, remote_revision)
         merged = self._git(
             executable,
             "merge",
@@ -175,29 +170,33 @@ class GitSyncService:
             raise GitRepositoryStateError(
                 "No fue posible confirmar el avance rápido seguro."
             )
-        self._validate_local_csv()
-        if self._worktree_changes(executable) - {ACADEMIC_PATH} != unrelated_before:
+        self._validate_local_dataset()
+        if self._worktree_changes(executable) - allowed != unrelated_before:
             raise GitRepositoryStateError(
-                "La verificación posterior detectó cambios ajenos a Academic.csv."
+                "La verificación posterior detectó cambios ajenos al conjunto compartido."
             )
-        if self._paths_between(executable, local_revision, remote_revision) != {
-            ACADEMIC_PATH
-        }:
+        if (
+            not self._paths_between(executable, local_revision, remote_revision)
+            <= allowed
+        ):
             raise GitRepositoryStateError(
-                "La verificación posterior no confirmó la allowlist exacta."
+                "La verificación posterior no confirmó la allowlist compartida."
             )
-        return UpdateResult(True, "Academic.csv se actualizó correctamente.")
+        return UpdateResult(
+            True, "La información académica se actualizó correctamente."
+        )
 
     def upload_information(self) -> UpdateResult:
-        """Commit and non-force push exactly ``Academic.csv``."""
+        """Commit and non-force push only normalized shared tables."""
         executable = self._check_environment()
-        self._validate_local_csv()
+        allowed = self._allowed_paths()
+        self._validate_local_dataset()
         changes = self._worktree_changes(executable)
-        unexpected = changes - {ACADEMIC_PATH}
+        unexpected = changes - allowed
         if unexpected:
             raise GitLocalChangesError(
                 "Hay cambios locales, staged o archivos no versionados fuera de "
-                "Academic.csv. La subida se detuvo."
+                "las tablas compartidas. La subida se detuvo."
             )
         if self._pending_commit is not None and changes:
             raise GitPushPendingError(self._pending_commit)
@@ -249,46 +248,47 @@ class GitSyncService:
             executable,
             "add",
             "--",
-            ACADEMIC_PATH,
+            *sorted(allowed),
             raise_on_error=False,
         )
         if added.returncode != 0:
             raise GitRepositoryStateError(
-                "No fue posible preparar Academic.csv de forma segura."
+                "No fue posible preparar el conjunto compartido de forma segura."
             )
         staged = self._staged_paths(executable)
         if not staged:
-            return UpdateResult(False, "No hay cambios en Academic.csv para subir.")
-        if staged != {ACADEMIC_PATH}:
+            return UpdateResult(False, "No hay cambios compartidos para subir.")
+        if not staged <= allowed:
             raise GitLocalChangesError(
                 "El área staged contiene rutas no autorizadas. La subida se detuvo."
             )
-        self._validate_local_csv()
+        self._validate_local_dataset()
 
         committed = self._git(
             executable,
             "commit",
             "-m",
-            COMMIT_MESSAGE,
+            SHARED_COMMIT_MESSAGE,
             "--only",
             "--",
-            ACADEMIC_PATH,
+            *sorted(allowed),
             raise_on_error=False,
         )
         if committed.returncode != 0:
             raise GitRepositoryStateError(
-                "No fue posible crear el commit local de Academic.csv. "
+                "No fue posible crear el commit local del conjunto compartido. "
                 "Revise la identidad Git configurada."
             )
         commit = self._revision(executable, "HEAD")
-        if self._commit_paths(executable, commit) != {ACADEMIC_PATH}:
+        commit_paths = self._commit_paths(executable, commit)
+        if not commit_paths or not commit_paths <= allowed:
             raise GitRepositoryStateError(
                 "El commit local no superó la verificación de allowlist y no se envió."
             )
         self._pending_commit = commit
         self._push_pending(executable, commit)
         self._pending_commit = None
-        return UpdateResult(True, "Academic.csv se subió correctamente.")
+        return UpdateResult(True, "La información académica se subió correctamente.")
 
     def _retry_pending(
         self,
@@ -324,9 +324,10 @@ class GitSyncService:
                 "Origin/main ya no es ancestro del commit local pendiente. "
                 "El reintento se detuvo sin crear otro commit."
             )
-        if self._paths_between(executable, remote_revision, commit) != {ACADEMIC_PATH}:
+        changed_paths = self._paths_between(executable, remote_revision, commit)
+        if not changed_paths or not changed_paths <= self._allowed_paths():
             raise GitPushPendingError(commit)
-        self._validate_revision_csv(executable, commit)
+        self._validate_revision(executable, commit)
         self._push_pending(executable, commit)
         self._pending_commit = None
         return UpdateResult(
@@ -358,12 +359,14 @@ class GitSyncService:
             local_revision,
             raise_on_error=False,
         )
+        commit_paths = self._commit_paths(executable, local_revision)
         return (
             count.returncode == 0
             and count.stdout.strip() == "1"
             and subject.returncode == 0
-            and subject.stdout.strip() == COMMIT_MESSAGE
-            and self._commit_paths(executable, local_revision) == {ACADEMIC_PATH}
+            and subject.stdout.strip() == SHARED_COMMIT_MESSAGE
+            and bool(commit_paths)
+            and commit_paths <= self._allowed_paths()
         )
 
     def _push_pending(self, executable: str, commit: str) -> None:
@@ -574,103 +577,108 @@ class GitSyncService:
         return {value for value in output.split("\0") if value}
 
     def _ensure_download_target_is_clean(self, executable: str) -> None:
-        if ACADEMIC_PATH in self._worktree_changes(executable):
+        allowed = self._allowed_paths()
+        if self._worktree_changes(executable) & allowed:
             raise GitLocalChangesError(
-                "Academic.csv tiene cambios locales que podrían sobrescribirse. "
+                "Las tablas compartidas tienen cambios locales que podrían sobrescribirse. "
                 "La descarga se detuvo."
             )
-        target = self.root / ACADEMIC_PATH
-        if target.exists() or target.is_symlink():
-            self._assert_safe_regular_file(target)
+        for relative in allowed:
+            target = self.root / relative
+            if target.exists() or target.is_symlink():
+                self._assert_safe_regular_file(relative)
 
-    def _validate_local_csv(self) -> None:
-        target = self.root / ACADEMIC_PATH
-        self._assert_safe_regular_file(target)
-        self._validate_csv(target)
+    def _validate_local_dataset(self) -> None:
+        for relative in self._allowed_paths():
+            self._assert_safe_regular_file(relative)
+        try:
+            validate_dataset(self.root / "data" / "public")
+        except ValueError as error:
+            raise GitCsvValidationError(
+                "El conjunto académico compartido es inválido."
+            ) from error
 
-    def _validate_revision_csv(self, executable: str, revision: str) -> None:
+    def _validate_revision(self, executable: str, revision: str) -> None:
+        try:
+            with tempfile.TemporaryDirectory(prefix="epuc-dataset-validate-") as folder:
+                candidate = Path(folder) / "public"
+                shutil.copytree(
+                    self.root / "data" / "public" / "catalogs", candidate / "catalogs"
+                )
+                (candidate / "tables").mkdir(parents=True)
+                for relative in sorted(self._allowed_paths()):
+                    self._assert_revision_regular_file(executable, revision, relative)
+                    result = self._git(
+                        executable,
+                        "show",
+                        f"{revision}:{relative}",
+                        raise_on_error=False,
+                    )
+                    if result.returncode != 0:
+                        raise GitCsvValidationError(
+                            "El conjunto remoto está incompleto."
+                        )
+                    (candidate / "tables" / Path(relative).name).write_text(
+                        result.stdout, encoding="utf-8", newline=""
+                    )
+                validate_dataset(candidate)
+        except GitCsvValidationError:
+            raise
+        except (OSError, UnicodeError, ValueError) as error:
+            raise GitCsvValidationError(
+                "El conjunto académico remoto es inválido."
+            ) from error
+
+    def _allowed_paths(self) -> set[str]:
+        return set(SHARED_TABLE_ALLOWLIST)
+
+    def _assert_revision_regular_file(
+        self, executable: str, revision: str, relative: str
+    ) -> None:
         tree = self._git(
             executable,
             "ls-tree",
             "-z",
             revision,
             "--",
-            ACADEMIC_PATH,
+            relative,
             raise_on_error=False,
         )
         entries = [entry for entry in tree.stdout.split("\0") if entry]
         if tree.returncode != 0 or len(entries) != 1:
-            raise GitCsvValidationError("El Academic.csv remoto es inválido.")
+            raise GitCsvValidationError("El conjunto remoto está incompleto.")
         descriptor, separator, path = entries[0].partition("\t")
         mode_and_type = descriptor.split()
         if (
             not separator
-            or path != ACADEMIC_PATH
+            or path != relative
             or len(mode_and_type) < 2
             or mode_and_type[0] != "100644"
             or mode_and_type[1] != "blob"
         ):
             raise GitCsvValidationError(
-                "El Academic.csv remoto no es un archivo regular autorizado."
+                "Una tabla remota no es un archivo regular autorizado."
             )
-        try:
-            blob = self._git(
-                executable,
-                "show",
-                f"{revision}:{ACADEMIC_PATH}",
-                raise_on_error=False,
-            )
-        except GitServiceError as error:
-            raise GitCsvValidationError(
-                "El Academic.csv remoto no tiene una codificación válida."
-            ) from error
-        if blob.returncode != 0:
-            raise GitCsvValidationError("El Academic.csv remoto es inválido.")
-        try:
-            with tempfile.TemporaryDirectory(
-                prefix="epuc-academic-validate-"
-            ) as folder:
-                candidate = Path(folder) / "Academic.csv"
-                candidate.write_text(blob.stdout, encoding="utf-8", newline="")
-                self._validate_csv(candidate)
-        except GitCsvValidationError:
-            raise
-        except (OSError, UnicodeError) as error:
-            raise GitCsvValidationError(
-                "No fue posible validar el Academic.csv remoto."
-            ) from error
 
-    def _validate_csv(self, path: Path) -> None:
-        try:
-            self._csv_validator(path)
-        except (AcademicRepositoryError, OSError, UnicodeError, ValueError) as error:
-            raise GitCsvValidationError(
-                "Academic.csv es inválido y no se sincronizó."
-            ) from error
-
-    def _default_csv_validator(self, path: Path) -> object:
-        catalogs_path = ProjectPaths(self.root)
-        return CsvAcademicRepository(
-            path,
-            catalogs=get_academic_catalogs(catalogs_path),
-        ).list_all()
-
-    def _assert_safe_regular_file(self, target: Path) -> None:
+    def _assert_safe_regular_file(self, relative: str) -> None:
+        target = self.root / relative
         current = self.root
-        for component in PurePosixPath(ACADEMIC_PATH).parts:
+        for component in PurePosixPath(relative).parts:
             current = current / component
             if current.is_symlink():
                 raise GitCsvValidationError(
-                    "Academic.csv no puede ser un enlace simbólico."
+                    "Una tabla compartida no puede ser un enlace simbólico."
                 )
         try:
             mode = os.lstat(target).st_mode
         except OSError as error:
             raise GitCsvValidationError(
-                "Academic.csv no existe o no puede leerse."
+                "Una tabla compartida no existe o no puede leerse."
             ) from error
         if not stat.S_ISREG(mode):
-            raise GitCsvValidationError("Academic.csv debe ser un archivo regular.")
+            raise GitCsvValidationError(
+                "Cada tabla compartida debe ser un archivo regular."
+            )
 
     def _git(
         self,

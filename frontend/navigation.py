@@ -11,6 +11,7 @@ class FrontendRoute(StrEnum):
     MENU = "menu"
     ACADEMIC_LIST = "academic_list"
     ACADEMIC_FORM = "academic_form"
+    ASSIGNMENT_FLOW = "assignment_flow"
 
 
 LOGIN_SCREEN = FrontendRoute.LOGIN.value
@@ -18,6 +19,7 @@ REGISTER_SCREEN = FrontendRoute.REGISTER.value
 MENU_SCREEN = FrontendRoute.MENU.value
 ACADEMIC_LIST_SCREEN = FrontendRoute.ACADEMIC_LIST.value
 ACADEMIC_FORM_SCREEN = FrontendRoute.ACADEMIC_FORM.value
+ASSIGNMENT_FLOW_SCREEN = FrontendRoute.ASSIGNMENT_FLOW.value
 
 ACTIVE_ROUTES = frozenset(FrontendRoute)
 RESERVED_ROUTES: frozenset[FrontendRoute] = frozenset()

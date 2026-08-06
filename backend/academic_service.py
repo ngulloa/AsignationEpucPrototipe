@@ -6,7 +6,7 @@ import hashlib
 import json
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from uuid import uuid4
 
 from backend.academic_catalog import ACADEMIC_CATALOGS, AcademicCatalogs
@@ -178,6 +178,7 @@ def duplicate_snapshot_token(record: AcademicRecord) -> str:
             record.profile,
             record.weekly_hours,
             record.status,
+            record.row_version,
         ),
         ensure_ascii=False,
         separators=(",", ":"),
@@ -221,7 +222,12 @@ class AcademicService:
                     != overwrite_confirmation.snapshot_token
                 ):
                     return _failure(AcademicErrorCode.STALE_DUPLICATE_CONFIRMATION)
-                self._repository.update(validated.record(duplicate.academic_id))
+                self._repository.update(
+                    replace(
+                        validated.record(duplicate.academic_id),
+                        row_version=duplicate.row_version,
+                    )
+                )
             elif duplicate is not None:
                 confirmation = DuplicateRutConfirmation(
                     academic_id=duplicate.academic_id,
@@ -252,7 +258,19 @@ class AcademicService:
             duplicate = self._repository.find_by_rut(validated.rut)
             if duplicate is not None and duplicate.academic_id != academic_id:
                 return _failure(AcademicErrorCode.DUPLICATE_RUT)
-            self._repository.update(validated.record(academic_id))
+            current = next(
+                (
+                    item
+                    for item in self._repository.list_all()
+                    if item.academic_id == academic_id
+                ),
+                None,
+            )
+            if current is None:
+                raise AcademicRepositoryNotFoundError("registro inexistente")
+            self._repository.update(
+                replace(validated.record(academic_id), row_version=current.row_version)
+            )
         except AcademicRepositoryError:
             LOGGER.exception("Falló la actualización de un registro académico.")
             return _failure(AcademicErrorCode.PERSISTENCE_ERROR)

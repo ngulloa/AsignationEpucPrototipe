@@ -1,0 +1,5 @@
+status_id,status_code,name,active
+academic-status-active-v1,ACTIVE,Activo,true
+academic-status-inactive-v1,INACTIVE,Inactivo,true
+academic-status-sabbatical-v1,SABBATICAL,Sabático,true
+academic-status-terminated-v1,TERMINATED,Terminado,true

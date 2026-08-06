@@ -11,6 +11,7 @@ from frontend.widgets import AppHeader, ResultBanner, Surface
 
 
 class MainMenuView(QWidget):
+    assign_load_requested = Signal()
     academics_requested = Signal()
     download_requested = Signal()
     upload_requested = Signal()
@@ -82,7 +83,7 @@ class MainMenuView(QWidget):
 
         self.assign_load_button = self._menu_button(
             texts.button_labels["assign_load"],
-            enabled=False,
+            primary=True,
         )
         self.academics_button = self._menu_button(
             texts.button_labels["open_academics"],
@@ -117,6 +118,7 @@ class MainMenuView(QWidget):
         panel_layout.addWidget(self.sync_message)
 
         self.academics_button.clicked.connect(self.academics_requested)
+        self.assign_load_button.clicked.connect(self.assign_load_requested)
         self.download_button.clicked.connect(self._request_download)
         self.upload_button.clicked.connect(self._request_upload)
 
@@ -139,10 +141,7 @@ class MainMenuView(QWidget):
     def set_sync_busy(self, busy: bool, operation: str = "") -> None:
         """Keep geometry stable while preventing overlapping actions."""
         for button in self.action_buttons:
-            button.setEnabled(
-                not busy
-                and button not in (self.assign_load_button, self.assignments_button)
-            )
+            button.setEnabled(not busy and button is not self.assignments_button)
         self.header.logout_button.setEnabled(not busy)
         self.download_button.setText(
             "Bajando información…"

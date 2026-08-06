@@ -109,6 +109,39 @@ class PersistentFrontendController:
         except RuntimeError as error:
             return SubmissionResult(False, str(error))
 
+    def list_active_academics(self):
+        return tuple(self.application.list_active_academics())
+
+    def list_periods(self):
+        return tuple(self.application.list_periods())
+
+    def create_period(self, year, term_code, start_date, end_date):
+        return self.application.create_period(year, term_code, start_date, end_date)
+
+    def list_courses(self):
+        return tuple(self.application.list_courses())
+
+    def list_offerings(self, period_id, course_id):
+        return tuple(self.application.list_offerings(period_id, course_id))
+
+    def calculate_course_assignment(self, draft):
+        return self.application.calculate_course_assignment(draft)
+
+    def create_course_assignment(self, draft):
+        return self.application.create_course_assignment(draft)
+
+    def authorize_assignment(
+        self, assignment_id, approved_points, justification="Aprobación interna"
+    ):
+        return self.application.authorize_assignment(
+            assignment_id, approved_points, justification
+        )
+
+    def adjust_assignment_points(self, assignment_id, new_points, reason):
+        return self.application.adjust_assignment_points(
+            assignment_id, new_points, reason
+        )
+
     def download_information(self) -> UiResult:
         try:
             result = self.application.download_information()

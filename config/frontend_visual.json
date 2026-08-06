@@ -54,6 +54,10 @@
     "academic_form": {
       "width": 1080,
       "height": 768
+    },
+    "assignment_flow": {
+      "width": 1080,
+      "height": 820
     }
   },
   "margins": {

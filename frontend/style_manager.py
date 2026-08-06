@@ -207,6 +207,15 @@ class StyleManager:
             QPushButton#secondaryButton:focus {{
                 border: {focus_border.width}px solid {focus_color};
             }}
+            QPushButton#secondaryButton:pressed {{
+                background-color: {colors["neutral_gray_100"]};
+                border: {focus_border.width}px solid {focus_color};
+            }}
+            QPushButton#futureActivityButton {{
+                background-color: {colors["neutral_gray_50"]};
+                color: {colors["neutral_gray_500"]};
+                border: {control_border.width}px solid {colors["neutral_gray_300"]};
+            }}
             QPushButton#headerLink:focus, QPushButton#linkButton:focus {{
                 border: {focus_border.width}px solid {colors["brand_yellow"]};
             }}
@@ -231,7 +240,7 @@ class StyleManager:
             QPushButton[sizeRole="large"] {{
                 font-size: {sizes["subtitle"]}px;
             }}
-            QLineEdit, QComboBox, QSpinBox, QTextEdit {{
+            QLineEdit, QComboBox, QAbstractSpinBox, QTextEdit {{
                 background-color: {colors["neutral_white"]};
                 color: {colors["neutral_gray_700"]};
                 border: {control_border.width}px solid {control_color};
@@ -243,10 +252,12 @@ class StyleManager:
             QTextEdit {{
                 padding: {self.visual.spacing["small"]}px;
             }}
-            QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QTextEdit:focus {{
+            QLineEdit:focus, QComboBox:focus, QAbstractSpinBox:focus,
+            QTextEdit:focus {{
                 border: {focus_border.width}px solid {focus_color};
             }}
-            QLineEdit:disabled, QLineEdit:read-only, QTextEdit:read-only {{
+            QLineEdit:disabled, QLineEdit:read-only,
+            QAbstractSpinBox:disabled, QTextEdit:read-only {{
                 background-color: {colors["neutral_white"]};
                 color: {colors["neutral_gray_500"]};
             }}
@@ -255,10 +266,11 @@ class StyleManager:
                 color: {colors["neutral_gray_500"]};
             }}
             QLineEdit[sizeRole="form"], QComboBox[sizeRole="form"],
-            QSpinBox[sizeRole="form"] {{
+            QAbstractSpinBox[sizeRole="form"] {{
                 font-size: {sizes["subtitle"]}px;
             }}
-            QComboBox::drop-down, QSpinBox::up-button, QSpinBox::down-button {{
+            QComboBox::drop-down, QAbstractSpinBox::up-button,
+            QAbstractSpinBox::down-button {{
                 border: none;
                 background-color: {colors["neutral_white"]};
             }}
@@ -273,6 +285,55 @@ class StyleManager:
             QComboBox QAbstractItemView::item:selected {{
                 background-color: {colors["brand_light_blue"]};
                 color: {colors["neutral_white"]};
+            }}
+            QListWidget {{
+                background-color: {colors["neutral_white"]};
+                alternate-background-color: {colors["neutral_gray_50"]};
+                color: {colors["neutral_black"]};
+                border: {control_border.width}px solid {control_color};
+                outline: none;
+                font-size: {sizes["body"]}px;
+            }}
+            QListWidget:focus {{
+                border: {focus_border.width}px solid {focus_color};
+            }}
+            QListWidget::item {{
+                padding: {self.visual.spacing["small"]}px
+                    {self.visual.spacing["medium"]}px;
+                border-bottom: {control_border.width}px solid
+                    {colors["neutral_gray_200"]};
+            }}
+            QListWidget::item:selected {{
+                background-color: {colors["brand_light_blue"]};
+                color: {colors["neutral_white"]};
+            }}
+            QListWidget::item:selected:!active {{
+                background-color: {colors["brand_blue"]};
+                color: {colors["neutral_white"]};
+            }}
+            QListWidget QScrollBar:vertical {{
+                background-color: {colors["neutral_gray_50"]};
+                width: {self.visual.spacing["medium"]}px;
+                margin: 0;
+            }}
+            QListWidget QScrollBar::handle:vertical {{
+                background-color: {colors["neutral_gray_300"]};
+                min-height: {self.visual.spacing["large"]}px;
+            }}
+            QListWidget QScrollBar::handle:vertical:hover {{
+                background-color: {colors["brand_light_blue"]};
+            }}
+            QListWidget QScrollBar::add-line:vertical,
+            QListWidget QScrollBar::sub-line:vertical {{
+                height: 0;
+                border: none;
+            }}
+            QListWidget QScrollBar::add-page:vertical,
+            QListWidget QScrollBar::sub-page:vertical {{
+                background: transparent;
+            }}
+            QListWidget QScrollBar:horizontal {{
+                height: 0;
             }}
             QTableWidget {{
                 background-color: {colors["neutral_white"]};
@@ -327,6 +388,32 @@ class StyleManager:
                 color: {colors["semantic_error"]};
                 font-size: {sizes["body"]}px;
                 font-weight: {weights["medium"]};
+            }}
+            QWidget#assignmentFlowView QLabel#fieldLabel {{
+                font-size: {sizes["body"]}px;
+            }}
+            QWidget#assignmentFlowView QLineEdit[sizeRole="form"],
+            QWidget#assignmentFlowView QComboBox[sizeRole="form"],
+            QWidget#assignmentFlowView QAbstractSpinBox[sizeRole="form"] {{
+                font-size: {sizes["body"]}px;
+            }}
+            QWidget#assignmentFlowView QLineEdit:disabled,
+            QWidget#assignmentFlowView QComboBox:disabled,
+            QWidget#assignmentFlowView QAbstractSpinBox:disabled {{
+                background-color: {colors["neutral_gray_50"]};
+                color: {colors["neutral_gray_500"]};
+            }}
+            QLabel#policyNotice {{
+                background-color: {colors["neutral_gray_50"]};
+                color: {colors["neutral_gray_700"]};
+                border-left: {self.visual.spacing["extra_small"]}px solid
+                    {colors["brand_yellow"]};
+                padding: {self.visual.spacing["small"]}px;
+                font-size: {sizes["caption"]}px;
+                font-weight: {weights["medium"]};
+            }}
+            QFrame#footerDivider {{
+                color: {colors["neutral_gray_200"]};
             }}
             QFrame#messagePanel {{
                 background-color: {colors["neutral_gray_50"]};

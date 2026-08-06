@@ -1,0 +1,4 @@
+classification_id,classification_code,name,active
+assignment-classification-dom-v1,DOM,Docencia Obligatoria Mínima,true
+assignment-classification-aac-v1,AAC,Actividad Académica Complementaria,true
+assignment-classification-aaa-v1,AAA,Actividad Académica Adicional,true

@@ -1,0 +1,16 @@
+workload_rule_id,policy_id,profile_id,weekly_hours,teaching_points,management_points,research_points,dom_course_equivalents,aac_points,validation_status,source_page
+workload-rule-proposal-v3-ordinary-mixed-40,workload-policy-proposal-v3,academic-profile-ordinary-mixed-v1,40,20,4,16,3,6,CONSISTENT,8-9
+workload-rule-proposal-v3-ordinary-mixed-30,workload-policy-proposal-v3,academic-profile-ordinary-mixed-v1,30,15,3,12,2.5,3,CONSISTENT,8-9
+workload-rule-proposal-v3-ordinary-mixed-20,workload-policy-proposal-v3,academic-profile-ordinary-mixed-v1,20,9,3,8,1.5,3,CONSISTENT,8-9
+workload-rule-proposal-v3-ordinary-research-40,workload-policy-proposal-v3,academic-profile-ordinary-research-v1,40,12,4,24,2,4,CONSISTENT,8-9
+workload-rule-proposal-v3-ordinary-research-30,workload-policy-proposal-v3,academic-profile-ordinary-research-v1,30,9,3,18,1.5,3,CONSISTENT,8-9
+workload-rule-proposal-v3-ordinary-research-20,workload-policy-proposal-v3,academic-profile-ordinary-research-v1,20,6,2,12,1,2,CONSISTENT,8-9
+workload-rule-proposal-v3-special-standard-40,workload-policy-proposal-v3,academic-profile-special-standard-v1,40,30,4,6,5,4,CONSISTENT,11-12
+workload-rule-proposal-v3-special-standard-30,workload-policy-proposal-v3,academic-profile-special-standard-v1,30,24,2,4,4,2,CONSISTENT,11-12
+workload-rule-proposal-v3-special-standard-20,workload-policy-proposal-v3,academic-profile-special-standard-v1,20,15,2,3,2.5,2,CONSISTENT,11-12
+workload-rule-proposal-v3-special-teaching-40,workload-policy-proposal-v3,academic-profile-special-teaching-v1,40,36,4,0,6,4,CONSISTENT,11-12
+workload-rule-proposal-v3-special-teaching-30,workload-policy-proposal-v3,academic-profile-special-teaching-v1,30,27,3,0,4.5,3,CONSISTENT,11-12
+workload-rule-proposal-v3-special-teaching-20,workload-policy-proposal-v3,academic-profile-special-teaching-v1,20,18,2,0,3,2,CONSISTENT,11-12
+workload-rule-proposal-v3-special-management-40,workload-policy-proposal-v3,academic-profile-special-management-v1,40,30,10,0,5,10,CONSISTENT,11-12
+workload-rule-proposal-v3-special-management-30,workload-policy-proposal-v3,academic-profile-special-management-v1,30,24,6,0,4,6,CONSISTENT,11-12
+workload-rule-proposal-v3-special-management-20,workload-policy-proposal-v3,academic-profile-special-management-v1,20,15,5,0,2.5,5,CONSISTENT,11-12

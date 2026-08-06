@@ -1,0 +1,6 @@
+status_id,status_code,name,active
+assignment-status-draft-v1,DRAFT,Borrador,true
+assignment-status-pending-authorization-v1,PENDING_AUTHORIZATION,Pendiente de autorización,true
+assignment-status-authorized-v1,AUTHORIZED,Autorizada,true
+assignment-status-rejected-v1,REJECTED,Rechazada,true
+assignment-status-cancelled-v1,CANCELLED,Cancelada,true

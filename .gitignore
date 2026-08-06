@@ -10,12 +10,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-.pytest_cache/
 .ruff_cache/
-.mypy_cache/
-.tox/
-.coverage
-htmlcov/
 
 build/
 dist/
@@ -40,9 +35,6 @@ credentials/
 *.swp
 *.swo
 *~
-screenshots/
-project_state*
-
 .idea/
 .vscode/
 .DS_Store

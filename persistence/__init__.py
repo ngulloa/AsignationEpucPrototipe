@@ -1,5 +1,1 @@
-"""Concrete local persistence adapters."""
-
-from persistence.csv_academic_repository import CsvAcademicRepository
-
-__all__ = ["CsvAcademicRepository"]
+"""Concrete local persistence adapters for the normalized CSV dataset."""

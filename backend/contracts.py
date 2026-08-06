@@ -81,6 +81,57 @@ class AcademicRecord:
     profile: str
     weekly_hours: int
     status: str
+    row_version: int = 1
+
+
+@dataclass(frozen=True, slots=True)
+class AcademicPeriod:
+    period_id: str
+    year: int
+    term_code: str
+    start_date: str
+    end_date: str
+    status_code: str
+
+
+@dataclass(frozen=True, slots=True)
+class Course:
+    course_id: str
+    course_code: str
+    name: str
+    level_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class CourseOffering:
+    offering_id: str
+    course_id: str
+    period_id: str
+    section_code: str
+    nrc: str = ""
+    enrollment_count: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class CourseAssignmentDraft:
+    academic_id: str
+    period_id: str
+    course_id: str
+    classification_code: str
+    participation_percentage: Decimal
+    offering_id: str | None = None
+    section_code: str = ""
+    nrc: str = ""
+    enrollment_count: int | None = None
+    demand_category_code: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class AssignmentResult:
+    assignment_id: str
+    calculated_points: Decimal
+    policy_id: str
+    policy_status: str
 
 
 class AcademicErrorCode(StrEnum):

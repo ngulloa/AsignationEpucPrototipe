@@ -1,0 +1,5 @@
+demand_category_id,policy_id,category_code,name,min_students,max_students,annual_points,active
+demand-category-a-proposal-v3,workload-policy-proposal-v3,A,Tipo A,5,19,2.5,true
+demand-category-b-proposal-v3,workload-policy-proposal-v3,B,Tipo B,20,59,4,true
+demand-category-c-proposal-v3,workload-policy-proposal-v3,C,Tipo C,60,99,5,true
+demand-category-d-proposal-v3,workload-policy-proposal-v3,D,Tipo D,100,,6,true

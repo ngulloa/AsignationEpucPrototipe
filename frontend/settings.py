@@ -194,6 +194,7 @@ def _parse_dimensions_mapping(
         "menu",
         "academic_list",
         "academic_form",
+        "assignment_flow",
     )
     dimensions = {
         screen: _parse_dimensions(

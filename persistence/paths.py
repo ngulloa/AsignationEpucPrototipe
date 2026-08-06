@@ -96,6 +96,18 @@ class ProjectPaths:
         return self.local_data_dir / "users.json"
 
     @property
+    def write_lock_path(self) -> Path:
+        return self.local_data_dir / "academic-data.write.lock"
+
+    @property
+    def staging_dir(self) -> Path:
+        return self.local_data_dir / "staging"
+
+    @property
+    def backups_dir(self) -> Path:
+        return self.local_data_dir / "backups"
+
+    @property
     def public_tables_dir(self) -> Path:
         return self.public_data_dir / "tables"
 
@@ -115,6 +127,12 @@ class ProjectPaths:
     @property
     def academic_profiles_catalog_path(self) -> Path:
         return self.academic_catalogs_dir / "academic_profiles.csv"
+
+    def table_path(self, filename: str) -> Path:
+        return self.public_tables_dir / filename
+
+    def catalog_path(self, filename: str) -> Path:
+        return self.academic_catalogs_dir / filename
 
 
 DEFAULT_PATHS = ProjectPaths(PROJECT_ROOT)

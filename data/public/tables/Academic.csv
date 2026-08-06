@@ -1,48 +1,48 @@
-academic_id,rut,name,plant,profile,weekly_hours,status
-8a2d544a-0030-4782-8617-85df2843e964,15840563-6,Catalina Isidora Álvarez Vallejos,Especial,Standard,30,Activo
-f534ecba-dd31-43fd-86bc-8f6a5cdb4c59,8893833-K,Claudia Cerfogli Flores,Especial,Standard,30,Activo
-48c9e59a-0e7e-45aa-a5dd-064f24ddfb35,12584544-4,Fernando Ignacio Contreras Muñoz,Especial,Standard,30,Activo
-788b7bb3-595b-4a3b-b999-611964036b2f,8776250-5,Candice Fischer Perlman,Especial,Standard,30,Activo
-07afa57a-5901-4983-be54-c799f1292a4c,13658254-2,Magdalena Garcés Ojeda,Especial,Standard,30,Activo
-57de2b83-b797-4ae5-ae09-1b6f40fb8475,8327431-K,Patricio German Morales Farías,Especial,Standard,30,Activo
-d963d75a-e504-41a0-b82a-7fa5003aaeff,8133978-3,Luis Alejandro Reinoso Medinelli,Especial,Standard,30,Activo
-d3dc61b2-188b-4e2a-a725-b7a7961808d4,13636385-9,Evelyn Christy Vera Estay,Especial,Docente,40,Activo
-7e37c9e2-4e53-4b4f-bf65-d8299c984467,6643563-6,Marcela Emma Aracena Álvarez,Ordinaria,Mixto,40,Activo
-b4baf6c7-dc0c-4d33-b050-cb7874c9082b,8863524-8,Felix Oscar Bacigalupo Izquierdo,Ordinaria,Mixto,20,Activo
-593118a5-6961-41b3-ac28-4e9fdfd177b9,16430103-6,Manuela Badilla Rajevic,Ordinaria,Mixto,40,Activo
-cefba5e4-69a0-40be-a0eb-6bac956e6252,13550572-2,Alex Joseph Behn Berliner,Ordinaria,Mixto,40,Activo
-a6b2e4ba-9221-478f-b2f4-4482ccc713c6,8843243-6,Christian Berger Silva,Ordinaria,Mixto,40,Activo
-a6244c96-d9ff-473a-bd43-5be9fcf21bbe,14002788-K,Héctor Sebastián Carvacho García,Ordinaria,Mixto,40,Activo
-6a6b8df9-e1c1-4c69-b163-75aef672c73b,16359270-3,David Marco Carre Benzi,Ordinaria,Mixto,40,Activo
-bfaecd5e-24a8-4844-987b-63a1cfba0257,11842757-2,Carlos Cornejo Alarcón,Ordinaria,Investigador,40,Activo
-5de07668-943e-49f7-aaf2-da5a5afdd7d5,8542668-0,Marcela Andrea Cornejo Cancino,Ordinaria,Mixto,40,Sabático
-0e088a34-2681-4230-b5d4-810dea6a4d93,8535586-4,Diego José Cosmelli Sánchez,Ordinaria,Mixto,40,Activo
-d3f42546-f624-4625-873f-b07154388494,8153120-K,Patricio Salvador Cumsille,Ordinaria,Mixto,40,Activo
-d093c8c5-3e2c-4fc5-8f6f-f1e895c28fe9,13672523-8,Marianne Daher Gray,Ordinaria,Mixto,40,Activo
-383ea4c8-93a9-442e-97da-60ef5035d9f6,9583472-8,Paula Andrea Errázuriz Arellano,Ordinaria,Mixto,30,Sabático
-ec0943fb-18e5-4f83-99e1-12c2e0f55524,7008357-4,Chamarrita Farkas Klein,Ordinaria,Investigador,20,Activo
-9a598eff-5612-4161-a6c0-e0e3a6061c2b,27669999-7,Mattia Indi Gerin,Ordinaria,Mixto,40,Activo
-3389d6b3-159a-46ac-8f25-8a9c222bef0e,10396183-1,Roberto González Gutiérrez,Ordinaria,Investigador,40,Activo
-4a95efe9-b9b2-4dda-baaa-464b3aaa8924,13102397-9,Valeska Valentina Grau Cárdenas,Ordinaria,Mixto,40,Activo
-84837fc4-80e4-4d00-b86b-6366fe0a4710,12235277-3,Andrés Antonio Haye Molina,Ordinaria,Investigador,40,Activo
-d0f6ae8f-b4c0-4611-a912-abf5afb009d0,24787931-5,Gloria Jiménez,Ordinaria,Mixto,40,Activo
-20bfc42c-6f45-402e-acde-68a8f0c13fe6,7034615-K,Mariane Krause Jacob,Ordinaria,Investigador,40,Activo
-7d6a0624-352a-4282-a91b-f04cd914e0a4,12883133-9,Edmundo Matías Kronmüller Ríoseco,Ordinaria,Mixto,40,Activo
-75e48a39-8b6e-49d3-b6c0-622e5a1f72af,9129190-8,María Rosa Lissi Adamo,Ordinaria,Mixto,40,Activo
-b8a69e11-596a-469e-b396-573ae401d55b,21130031-0,Vladimir Hernández López,Ordinaria,Mixto,40,Activo
-8929202a-c2e5-4ea7-ad2f-8c1518d54e5d,10477860-7,Paula Bernadette Luengo Kanacri,Ordinaria,Investigador,40,Activo
-7e877679-d95e-4934-a660-2ccb5010d975,7177019-2,Jorge Manzi Astudillo,Ordinaria,Mixto,20,Activo
-16bcc5b5-bde4-4d7e-b4bd-b07a819c4cb5,14119332-5,Fernanda María Mediano Stoltze,Ordinaria,Mixto,40,Activo
-e2bd5d04-23b8-4c8a-abf2-e994241138fa,13435210-8,Marigen Narea Biscupovich,Ordinaria,Mixto,40,Activo
-97328e07-493a-479a-abc3-b1eb64c4475d,13040078-7,Lucía Beatriz Nuñez Hidalgo,Ordinaria,Mixto,40,Activo
-7ba1f210-e268-4041-9ffd-4db14df5fa8d,9990701-0,Marcia Olhaberry Huber,Ordinaria,Mixto,40,Activo
-14fc1302-459b-4b15-b3cf-8360e1f50985,9085456-9,Marcela de Lourdes Peña Garay,Ordinaria,Investigador,40,Activo
-01630cd1-b672-4d3b-b121-43937fe5baff,7938444-5,David Daniel Preiss Contreras,Ordinaria,Investigador,40,Activo
-502bd59c-b791-443d-bcb7-e26455b9d300,8795276-2,Paula Beatriz Repetto Lisboa,Ordinaria,Mixto,40,Activo
-2c1aeee0-e663-43e4-bb1b-3c5219467923,7812797-K,Eugenio Fernando Rodríguez Balboa,Ordinaria,Mixto,40,Activo
-6d21f758-afa4-4729-87ab-cce4ce140e57,7570094-6,Ricardo Rosas Díaz,Ordinaria,Mixto,20,Activo
-28bf7a7d-01bf-4986-a913-a1ab062adcac,10951942-1,María Pía Santelices Álvarez,Ordinaria,Mixto,40,Activo
-d9f3a3e3-183c-4de5-996e-e7a758ef9e55,11922489-6,Christian Luis Sebastián Balmaceda,Ordinaria,Mixto,40,Activo
-9613fc50-0799-4555-8edf-bbf97ad82766,6349995-1,Dariela Lea Sharim Kovalskys,Especial,Docente,40,Activo
-4599a5c8-45b8-4581-9e0b-e87696414db7,12297704-8,Katherine Strasser Salinas,Ordinaria,Mixto,40,Activo
-1448162a-a144-4c88-8d28-756a0bc0ecc6,15073898-9,David Esteban Torres Irribarra,Ordinaria,Mixto,40,Activo
+academic_id,rut,name,created_at,updated_at,row_version
+8a2d544a-0030-4782-8617-85df2843e964,15840563-6,Catalina Isidora Álvarez Vallejos,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+f534ecba-dd31-43fd-86bc-8f6a5cdb4c59,8893833-K,Claudia Cerfogli Flores,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+48c9e59a-0e7e-45aa-a5dd-064f24ddfb35,12584544-4,Fernando Ignacio Contreras Muñoz,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+788b7bb3-595b-4a3b-b999-611964036b2f,8776250-5,Candice Fischer Perlman,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+07afa57a-5901-4983-be54-c799f1292a4c,13658254-2,Magdalena Garcés Ojeda,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+57de2b83-b797-4ae5-ae09-1b6f40fb8475,8327431-K,Patricio German Morales Farías,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+d963d75a-e504-41a0-b82a-7fa5003aaeff,8133978-3,Luis Alejandro Reinoso Medinelli,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+d3dc61b2-188b-4e2a-a725-b7a7961808d4,13636385-9,Evelyn Christy Vera Estay,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+7e37c9e2-4e53-4b4f-bf65-d8299c984467,6643563-6,Marcela Emma Aracena Álvarez,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+b4baf6c7-dc0c-4d33-b050-cb7874c9082b,8863524-8,Felix Oscar Bacigalupo Izquierdo,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+593118a5-6961-41b3-ac28-4e9fdfd177b9,16430103-6,Manuela Badilla Rajevic,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+cefba5e4-69a0-40be-a0eb-6bac956e6252,13550572-2,Alex Joseph Behn Berliner,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+a6b2e4ba-9221-478f-b2f4-4482ccc713c6,8843243-6,Christian Berger Silva,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+a6244c96-d9ff-473a-bd43-5be9fcf21bbe,14002788-K,Héctor Sebastián Carvacho García,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+6a6b8df9-e1c1-4c69-b163-75aef672c73b,16359270-3,David Marco Carre Benzi,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+bfaecd5e-24a8-4844-987b-63a1cfba0257,11842757-2,Carlos Cornejo Alarcón,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+5de07668-943e-49f7-aaf2-da5a5afdd7d5,8542668-0,Marcela Andrea Cornejo Cancino,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+0e088a34-2681-4230-b5d4-810dea6a4d93,8535586-4,Diego José Cosmelli Sánchez,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+d3f42546-f624-4625-873f-b07154388494,8153120-K,Patricio Salvador Cumsille,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+d093c8c5-3e2c-4fc5-8f6f-f1e895c28fe9,13672523-8,Marianne Daher Gray,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+383ea4c8-93a9-442e-97da-60ef5035d9f6,9583472-8,Paula Andrea Errázuriz Arellano,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+ec0943fb-18e5-4f83-99e1-12c2e0f55524,7008357-4,Chamarrita Farkas Klein,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+9a598eff-5612-4161-a6c0-e0e3a6061c2b,27669999-7,Mattia Indi Gerin,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+3389d6b3-159a-46ac-8f25-8a9c222bef0e,10396183-1,Roberto González Gutiérrez,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+4a95efe9-b9b2-4dda-baaa-464b3aaa8924,13102397-9,Valeska Valentina Grau Cárdenas,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+84837fc4-80e4-4d00-b86b-6366fe0a4710,12235277-3,Andrés Antonio Haye Molina,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+d0f6ae8f-b4c0-4611-a912-abf5afb009d0,24787931-5,Gloria Jiménez,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+20bfc42c-6f45-402e-acde-68a8f0c13fe6,7034615-K,Mariane Krause Jacob,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+7d6a0624-352a-4282-a91b-f04cd914e0a4,12883133-9,Edmundo Matías Kronmüller Ríoseco,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+75e48a39-8b6e-49d3-b6c0-622e5a1f72af,9129190-8,María Rosa Lissi Adamo,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+b8a69e11-596a-469e-b396-573ae401d55b,21130031-0,Vladimir Hernández López,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+8929202a-c2e5-4ea7-ad2f-8c1518d54e5d,10477860-7,Paula Bernadette Luengo Kanacri,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+7e877679-d95e-4934-a660-2ccb5010d975,7177019-2,Jorge Manzi Astudillo,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+16bcc5b5-bde4-4d7e-b4bd-b07a819c4cb5,14119332-5,Fernanda María Mediano Stoltze,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+e2bd5d04-23b8-4c8a-abf2-e994241138fa,13435210-8,Marigen Narea Biscupovich,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+97328e07-493a-479a-abc3-b1eb64c4475d,13040078-7,Lucía Beatriz Nuñez Hidalgo,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+7ba1f210-e268-4041-9ffd-4db14df5fa8d,9990701-0,Marcia Olhaberry Huber,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+14fc1302-459b-4b15-b3cf-8360e1f50985,9085456-9,Marcela de Lourdes Peña Garay,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+01630cd1-b672-4d3b-b121-43937fe5baff,7938444-5,David Daniel Preiss Contreras,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+502bd59c-b791-443d-bcb7-e26455b9d300,8795276-2,Paula Beatriz Repetto Lisboa,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+2c1aeee0-e663-43e4-bb1b-3c5219467923,7812797-K,Eugenio Fernando Rodríguez Balboa,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+6d21f758-afa4-4729-87ab-cce4ce140e57,7570094-6,Ricardo Rosas Díaz,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+28bf7a7d-01bf-4986-a913-a1ab062adcac,10951942-1,María Pía Santelices Álvarez,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+d9f3a3e3-183c-4de5-996e-e7a758ef9e55,11922489-6,Christian Luis Sebastián Balmaceda,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+9613fc50-0799-4555-8edf-bbf97ad82766,6349995-1,Dariela Lea Sharim Kovalskys,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+4599a5c8-45b8-4581-9e0b-e87696414db7,12297704-8,Katherine Strasser Salinas,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1
+1448162a-a144-4c88-8d28-756a0bc0ecc6,15073898-9,David Esteban Torres Irribarra,2026-08-04T16:39:50-04:00,2026-08-04T16:39:50-04:00,1

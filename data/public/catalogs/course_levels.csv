@@ -1,0 +1,3 @@
+level_id,level_code,name,active
+course-level-undergraduate-v1,UNDERGRADUATE,Pregrado,true
+course-level-postgraduate-v1,POSTGRADUATE,Postgrado,true

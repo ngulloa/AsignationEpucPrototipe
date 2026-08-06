@@ -1,0 +1,7 @@
+assignment_type_id,type_code,name,implemented,active
+assignment-type-course-v1,COURSE,Curso,true,true
+assignment-type-practice-v1,PRACTICE,Práctica,false,true
+assignment-type-directed-study-v1,DIRECTED_STUDY,Estudio dirigido,false,true
+assignment-type-thesis-v1,THESIS,Tesis,false,true
+assignment-type-committee-v1,COMMITTEE,Comité,false,true
+assignment-type-management-v1,MANAGEMENT,Gestión,false,true

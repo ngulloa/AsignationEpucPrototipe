@@ -11,13 +11,6 @@ dependencies = [
     "PySide6>=6.10,<7",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.4,<10",
-    "pytest-qt>=4.5,<5",
-    "ruff>=0.14,<1",
-]
-
 [project.scripts]
 epuc-academic-assignment = "main:main"
 
@@ -38,16 +31,11 @@ config = [
     "config/frontend_visual.json",
 ]
 "data/public/catalogs" = [
-    "data/public/catalogs/academic_profiles.csv",
-    "data/public/catalogs/academic_staff.csv",
+    "data/public/catalogs/*.csv",
 ]
 "data/public/tables" = [
-    "data/public/tables/Academic.csv",
+    "data/public/tables/*.csv",
 ]
-
-[tool.pytest.ini_options]
-addopts = "-ra --strict-config --strict-markers"
-testpaths = ["tests"]
 
 [tool.ruff]
 target-version = "py314"

@@ -20,6 +20,7 @@ from frontend.controller import FrontendController
 from frontend.navigation import (
     ACADEMIC_FORM_SCREEN,
     ACADEMIC_LIST_SCREEN,
+    ASSIGNMENT_FLOW_SCREEN,
     LOGIN_SCREEN,
     MENU_SCREEN,
     REGISTER_SCREEN,
@@ -29,6 +30,7 @@ from frontend.style_manager import StyleManager
 from frontend.views import (
     AcademicFormView,
     AcademicsListView,
+    AssignmentFlowView,
     LoginView,
     MainMenuView,
     RegisterView,
@@ -95,12 +97,16 @@ class MainWindow(QMainWindow):
             self._submit_callback,
             update_callback=self.controller.update_academic,
         )
+        self.assignment_flow_view = AssignmentFlowView(
+            self.settings, self.style_manager, self.controller
+        )
         self._views = {
             LOGIN_SCREEN: self.login_view,
             REGISTER_SCREEN: self.register_view,
             MENU_SCREEN: self.main_menu_view,
             ACADEMIC_LIST_SCREEN: self.academics_list_view,
             ACADEMIC_FORM_SCREEN: self.academic_form_view,
+            ASSIGNMENT_FLOW_SCREEN: self.assignment_flow_view,
         }
         for view in self._views.values():
             self.stack.addWidget(view)
@@ -127,6 +133,7 @@ class MainWindow(QMainWindow):
             self._handle_registration_success
         )
         self.main_menu_view.academics_requested.connect(self.show_academics_list)
+        self.main_menu_view.assign_load_requested.connect(self.show_assignment_flow)
         self.main_menu_view.download_requested.connect(self.download_information)
         self.main_menu_view.upload_requested.connect(self.upload_information)
         self.academics_list_view.menu_requested.connect(self.show_main_menu)
@@ -137,10 +144,15 @@ class MainWindow(QMainWindow):
         self.academic_form_view.submission_succeeded.connect(
             self._handle_submission_success
         )
+        self.assignment_flow_view.cancel_requested.connect(self.show_main_menu)
+        self.assignment_flow_view.saved.connect(
+            lambda message: self.main_menu_view.show_sync_result(message, success=True)
+        )
         for view in (
             self.main_menu_view,
             self.academics_list_view,
             self.academic_form_view,
+            self.assignment_flow_view,
         ):
             view.logout_requested.connect(self.logout)
 
@@ -160,6 +172,10 @@ class MainWindow(QMainWindow):
     def show_academic_form(self) -> None:
         self.academic_form_view.prepare_new()
         self._show_screen(ACADEMIC_FORM_SCREEN)
+
+    def show_assignment_flow(self) -> None:
+        self.assignment_flow_view.prepare()
+        self._show_screen(ASSIGNMENT_FLOW_SCREEN)
 
     def show_academic_edit(self, record: AcademicRecord) -> None:
         self.academic_form_view.prepare_edit(record)
@@ -203,6 +219,7 @@ class MainWindow(QMainWindow):
         self.main_menu_view.set_session("")
         self.academics_list_view.set_session("")
         self.academic_form_view.set_session("")
+        self.assignment_flow_view.set_session("")
         self._show_screen(LOGIN_SCREEN, force_reference_size=True)
 
     def _handle_authenticated(self, username: str) -> None:
@@ -210,6 +227,7 @@ class MainWindow(QMainWindow):
         self.main_menu_view.set_session(username)
         self.academics_list_view.set_session(username)
         self.academic_form_view.set_session(username)
+        self.assignment_flow_view.set_session(username)
         self.show_main_menu()
 
     def _handle_registration_success(self, _message: str, username: str) -> None:
