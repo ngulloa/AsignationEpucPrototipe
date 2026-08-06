@@ -7,6 +7,7 @@ from backend.academic_service import AcademicService
 from backend.assignment_service import AssignmentService
 from backend.authentication import LocalAuthenticationService
 from backend.contracts import (
+    AcademicAssignmentsSummary,
     AcademicFormData,
     AcademicRecord,
     AuthenticatedSession,
@@ -88,6 +89,12 @@ class ApplicationService:
     def list_active_academics(self):
         self._require_session()
         return self._assignments.list_active_academics()
+
+    def list_assignments_by_academic(
+        self, period_id: str | None = None
+    ) -> tuple[AcademicAssignmentsSummary, ...]:
+        self._require_session()
+        return self._assignments.list_assignments_by_academic(period_id)
 
     def list_periods(self):
         self._require_session()

@@ -9,6 +9,7 @@ from backend.application_service import ApplicationService, AuthenticationRequir
 from backend.authentication import AuthenticationError
 from backend.contracts import (
     AcademicListingError,
+    AssignmentListingError,
     DuplicateRutConfirmation,
     SubmissionResult,
 )
@@ -111,6 +112,12 @@ class PersistentFrontendController:
 
     def list_active_academics(self):
         return tuple(self.application.list_active_academics())
+
+    def list_assignments_by_academic(self, period_id=None):
+        try:
+            return tuple(self.application.list_assignments_by_academic(period_id))
+        except RuntimeError as error:
+            raise AssignmentListingError(str(error)) from error
 
     def list_periods(self):
         return tuple(self.application.list_periods())

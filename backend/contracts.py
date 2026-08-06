@@ -134,6 +134,44 @@ class AssignmentResult:
     policy_status: str
 
 
+@dataclass(frozen=True, slots=True)
+class AssignmentSummary:
+    """Read-only consolidated details for one persisted assignment."""
+
+    assignment_id: str
+    period_id: str
+    period_label: str
+    type_code: str
+    type_name: str
+    classification_code: str
+    classification_name: str
+    status_code: str
+    status_name: str
+    course_code: str | None
+    course_name: str | None
+    section_code: str | None
+    nrc: str | None
+    calculated_points: Decimal
+    latest_authorized_points: Decimal | None
+    displayed_points: Decimal
+    contributes_to_total: bool
+
+
+@dataclass(frozen=True, slots=True)
+class AcademicAssignmentsSummary:
+    """Assignments shown for one academic with a current employment link."""
+
+    academic_id: str
+    name: str
+    rut: str
+    assignments: tuple[AssignmentSummary, ...]
+    total_points: Decimal
+
+
+class AssignmentListingError(RuntimeError):
+    """The consolidated assignment query could not return complete results."""
+
+
 class AcademicErrorCode(StrEnum):
     """Stable machine-readable outcomes for academic operations."""
 

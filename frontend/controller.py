@@ -7,6 +7,7 @@ from typing import Protocol
 
 from backend.academic_catalog import AcademicCatalogs
 from backend.contracts import (
+    AcademicAssignmentsSummary,
     AcademicFormData,
     AcademicRecord,
     CourseAssignmentDraft,
@@ -54,6 +55,10 @@ class FrontendController(Protocol):
     def upload_information(self) -> UiResult: ...
 
     def list_active_academics(self): ...
+
+    def list_assignments_by_academic(
+        self, period_id: str | None = None
+    ) -> Sequence[AcademicAssignmentsSummary]: ...
 
     def list_periods(self): ...
 

@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import csv
+import unicodedata
 from datetime import date, datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from uuid import uuid4
 
 from backend.contracts import (
+    AcademicAssignmentsSummary,
     AcademicPeriod,
+    AssignmentListingError,
     AssignmentResult,
+    AssignmentSummary,
     Course,
     CourseAssignmentDraft,
     CourseOffering,
@@ -23,6 +27,53 @@ from persistence.unit_of_work import CsvUnitOfWork
 
 class AssignmentValidationError(ValueError):
     pass
+
+
+def _indexed(
+    rows: list[dict[str, str]], key: str, label: str
+) -> dict[str, dict[str, str]]:
+    result: dict[str, dict[str, str]] = {}
+    for row in rows:
+        identifier = row[key]
+        if not identifier:
+            raise AssignmentListingError(f"Identificador vacío en {label}.{key}.")
+        if identifier in result:
+            raise AssignmentListingError(
+                f"Identificador duplicado {identifier!r} en {label}.{key}."
+            )
+        result[identifier] = row
+    return result
+
+
+def _required_reference(
+    index: dict[str, dict[str, str]], identifier: str, relationship: str
+) -> dict[str, str]:
+    try:
+        return index[identifier]
+    except KeyError as error:
+        raise AssignmentListingError(
+            f"Referencia inexistente en {relationship}: {identifier!r}."
+        ) from error
+
+
+def _persisted_decimal(value: str, relationship: str) -> Decimal:
+    try:
+        result = Decimal(value)
+    except (InvalidOperation, ValueError) as error:
+        raise AssignmentListingError(
+            f"Decimal inválido en {relationship}: {value!r}."
+        ) from error
+    if not result.is_finite():
+        raise AssignmentListingError(f"Decimal no finito en {relationship}.")
+    return result
+
+
+def _normalized_name(value: str) -> str:
+    collapsed = " ".join(value.split()).casefold()
+    decomposed = unicodedata.normalize("NFKD", collapsed)
+    return "".join(
+        character for character in decomposed if not unicodedata.combining(character)
+    )
 
 
 def _write(path: Path, fields: tuple[str, ...], rows: list[dict[str, object]]) -> None:
@@ -82,6 +133,277 @@ class AssignmentService:
 
     def list_active_academics(self):
         return NormalizedAcademicRepository(self.paths).list_active()
+
+    def list_assignments_by_academic(
+        self, period_id: str | None = None
+    ) -> tuple[AcademicAssignmentsSummary, ...]:
+        """Return a complete, read-only assignment projection grouped by academic."""
+        tables = self.paths.public_tables_dir
+        catalogs = self.paths.academic_catalogs_dir
+        try:
+            academic_rows = read_csv(
+                tables / "Academic.csv", TABLE_FIELDS["Academic.csv"]
+            )
+            employment_rows = read_csv(
+                tables / "academic_employment_history.csv",
+                TABLE_FIELDS["academic_employment_history.csv"],
+            )
+            period_rows = read_csv(
+                tables / "academic_periods.csv",
+                TABLE_FIELDS["academic_periods.csv"],
+            )
+            assignment_rows = read_csv(
+                tables / "academic_assignments.csv",
+                TABLE_FIELDS["academic_assignments.csv"],
+            )
+            detail_rows = read_csv(
+                tables / "course_assignments.csv",
+                TABLE_FIELDS["course_assignments.csv"],
+            )
+            offering_rows = read_csv(
+                tables / "course_offerings.csv",
+                TABLE_FIELDS["course_offerings.csv"],
+            )
+            course_rows = read_csv(tables / "Course.csv", TABLE_FIELDS["Course.csv"])
+            authorization_rows = read_csv(
+                tables / "assignment_authorizations.csv",
+                TABLE_FIELDS["assignment_authorizations.csv"],
+            )
+            type_rows = read_csv(
+                catalogs / "assignment_types.csv",
+                CATALOG_FIELDS["assignment_types.csv"],
+            )
+            classification_rows = read_csv(
+                catalogs / "assignment_classifications.csv",
+                CATALOG_FIELDS["assignment_classifications.csv"],
+            )
+            status_rows = read_csv(
+                catalogs / "assignment_statuses.csv",
+                CATALOG_FIELDS["assignment_statuses.csv"],
+            )
+        except ValueError as error:
+            raise AssignmentListingError(
+                f"No fue posible leer la consulta de asignaciones: {error}"
+            ) from error
+
+        academics = _indexed(academic_rows, "academic_id", "Academic")
+        employments = _indexed(
+            employment_rows, "employment_id", "academic_employment_history"
+        )
+        periods = _indexed(period_rows, "period_id", "academic_periods")
+        assignments = _indexed(assignment_rows, "assignment_id", "academic_assignments")
+        details = _indexed(detail_rows, "assignment_id", "course_assignments")
+        offerings = _indexed(offering_rows, "offering_id", "course_offerings")
+        courses = _indexed(course_rows, "course_id", "Course")
+        types = _indexed(type_rows, "assignment_type_id", "assignment_types")
+        classifications = _indexed(
+            classification_rows,
+            "classification_id",
+            "assignment_classifications",
+        )
+        statuses = _indexed(status_rows, "status_id", "assignment_statuses")
+
+        current_academic_ids = {
+            row["academic_id"] for row in employment_rows if not row["valid_to"]
+        }
+        for academic_id in current_academic_ids:
+            _required_reference(
+                academics,
+                academic_id,
+                "academic_employment_history.academic_id → Academic.academic_id",
+            )
+
+        authorizations_by_assignment: dict[str, list[tuple[int, dict[str, str]]]] = {}
+        sequences: set[tuple[str, int]] = set()
+        for authorization in authorization_rows:
+            assignment_id = authorization["assignment_id"]
+            _required_reference(
+                assignments,
+                assignment_id,
+                "assignment_authorizations.assignment_id "
+                "→ academic_assignments.assignment_id",
+            )
+            try:
+                sequence = int(authorization["decision_sequence"])
+            except ValueError as error:
+                raise AssignmentListingError(
+                    "Secuencia inválida en "
+                    f"assignment_authorizations: {authorization['decision_sequence']!r}."
+                ) from error
+            if sequence < 1 or (assignment_id, sequence) in sequences:
+                raise AssignmentListingError(
+                    "Secuencia duplicada o menor que uno para la asignación "
+                    f"{assignment_id!r}."
+                )
+            sequences.add((assignment_id, sequence))
+            decision = authorization["decision_code"]
+            if decision not in {"AUTHORIZED", "REJECTED", "REVOKED"}:
+                raise AssignmentListingError(
+                    f"Decisión desconocida {decision!r} para {assignment_id!r}."
+                )
+            authorizations_by_assignment.setdefault(assignment_id, []).append(
+                (sequence, authorization)
+            )
+
+        grouped: dict[str, list[AssignmentSummary]] = {
+            academic_id: [] for academic_id in current_academic_ids
+        }
+        for assignment in assignment_rows:
+            assignment_id = assignment["assignment_id"]
+            included = period_id is None or assignment["period_id"] == period_id
+            employment = _required_reference(
+                employments,
+                assignment["employment_id"],
+                "academic_assignments.employment_id "
+                "→ academic_employment_history.employment_id",
+            )
+            academic = _required_reference(
+                academics,
+                employment["academic_id"],
+                "academic_employment_history.academic_id → Academic.academic_id",
+            )
+            period = _required_reference(
+                periods,
+                assignment["period_id"],
+                "academic_assignments.period_id → academic_periods.period_id",
+            )
+            assignment_type = _required_reference(
+                types,
+                assignment["assignment_type_id"],
+                "academic_assignments.assignment_type_id "
+                "→ assignment_types.assignment_type_id",
+            )
+            classification = _required_reference(
+                classifications,
+                assignment["classification_id"],
+                "academic_assignments.classification_id "
+                "→ assignment_classifications.classification_id",
+            )
+            status = _required_reference(
+                statuses,
+                assignment["status_id"],
+                "academic_assignments.status_id → assignment_statuses.status_id",
+            )
+
+            course_code = course_name = section_code = nrc = None
+            if assignment_type["type_code"] == "COURSE":
+                detail = _required_reference(
+                    details,
+                    assignment_id,
+                    "academic_assignments.assignment_id "
+                    "→ course_assignments.assignment_id",
+                )
+                offering = _required_reference(
+                    offerings,
+                    detail["offering_id"],
+                    "course_assignments.offering_id → course_offerings.offering_id",
+                )
+                if offering["period_id"] != assignment["period_id"]:
+                    raise AssignmentListingError(
+                        "Períodos inconsistentes entre la asignación "
+                        f"{assignment_id!r} y su oferta {offering['offering_id']!r}."
+                    )
+                course = _required_reference(
+                    courses,
+                    offering["course_id"],
+                    "course_offerings.course_id → Course.course_id",
+                )
+                course_code = course["course_code"]
+                course_name = course["name"]
+                section_code = offering["section_code"] or None
+                nrc = offering["nrc"] or None
+
+            calculated_points = _persisted_decimal(
+                assignment["calculated_points"],
+                f"academic_assignments.calculated_points ({assignment_id})",
+            )
+            decisions = sorted(
+                authorizations_by_assignment.get(assignment_id, ()),
+                key=lambda item: item[0],
+            )
+            latest_decision = decisions[-1][1]["decision_code"] if decisions else None
+            authorized = [
+                item for item in decisions if item[1]["decision_code"] == "AUTHORIZED"
+            ]
+            latest_authorized_points = None
+            if authorized:
+                authorization = authorized[-1][1]
+                latest_authorized_points = _persisted_decimal(
+                    authorization["approved_points"],
+                    "assignment_authorizations.approved_points "
+                    f"({authorization['authorization_id']})",
+                )
+            displayed_points = (
+                latest_authorized_points
+                if latest_authorized_points is not None
+                else calculated_points
+            )
+            contributes = status["status_code"] in {
+                "PENDING_AUTHORIZATION",
+                "AUTHORIZED",
+            } and latest_decision not in {"REJECTED", "REVOKED"}
+            summary = AssignmentSummary(
+                assignment_id=assignment_id,
+                period_id=period["period_id"],
+                period_label=f"{period['year']} · {period['term_code']}",
+                type_code=assignment_type["type_code"],
+                type_name=assignment_type["name"],
+                classification_code=classification["classification_code"],
+                classification_name=classification["name"],
+                status_code=status["status_code"],
+                status_name=status["name"],
+                course_code=course_code,
+                course_name=course_name,
+                section_code=section_code,
+                nrc=nrc,
+                calculated_points=calculated_points,
+                latest_authorized_points=latest_authorized_points,
+                displayed_points=displayed_points,
+                contributes_to_total=contributes,
+            )
+            if included and academic["academic_id"] in grouped:
+                grouped[academic["academic_id"]].append(summary)
+
+        result = []
+        for academic_id in current_academic_ids:
+            academic = academics[academic_id]
+            academic_assignments = tuple(
+                sorted(
+                    grouped[academic_id],
+                    key=lambda item: (
+                        item.period_label,
+                        item.course_code or "",
+                        item.assignment_id,
+                    ),
+                )
+            )
+            total = sum(
+                (
+                    item.displayed_points
+                    for item in academic_assignments
+                    if item.contributes_to_total
+                ),
+                Decimal(0),
+            )
+            result.append(
+                AcademicAssignmentsSummary(
+                    academic_id=academic_id,
+                    name=academic["name"],
+                    rut=academic["rut"],
+                    assignments=academic_assignments,
+                    total_points=total,
+                )
+            )
+        return tuple(
+            sorted(
+                result,
+                key=lambda item: (
+                    _normalized_name(item.name),
+                    item.rut,
+                    item.academic_id,
+                ),
+            )
+        )
 
     def list_periods(self) -> list[AcademicPeriod]:
         rows = read_csv(
