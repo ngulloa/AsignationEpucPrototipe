@@ -48,10 +48,32 @@ Los controles de subida y bajada sincronizan exclusivamente las tablas
 compartidas autorizadas. Las bajadas aceptan solo avances rápidos, los datos se
 validan antes de aplicarse y los conflictos requieren resolución manual.
 
+## Vista Asignaciones
+
+La opción **Asignaciones** abre una consulta de solo lectura que se recarga en
+cada entrada. Incluye a los académicos con vínculo vigente aunque todavía no
+tengan carga; en ese caso muestra `Sin asignaciones` y un total de `0.00`.
+
+La relación se resuelve en el backend de forma indirecta: asignación → vínculo
+académico → académico. El puntaje informativo de cada asignación corresponde al
+último puntaje autorizado, cuando existe, o al puntaje calculado persistido. El
+total también llega calculado desde el backend con aritmética decimal: incluye
+estados pendientes de autorización y autorizados, y excluye rechazados,
+cancelados o cuya última decisión fue rechazada o revocada. La interfaz no
+recalcula reglas normativas ni suma los puntajes.
+
+El indicador gris de advertencia es accesible pero permanece inactivo y sin
+lógica funcional en esta versión. Un error de lectura deja la pantalla operable,
+muestra un mensaje seguro y permite volver al menú o reintentar al entrar otra
+vez.
+
 ## Limitaciones actuales
 
-- El dataset inicial no incluye períodos, cursos, ofertas ni asignaciones.
+- El dataset inicial incluye períodos, cursos, ofertas y asignaciones de
+  demostración.
 - Solo la asignación de tipo Curso está habilitada.
+- La vista Asignaciones no ofrece filtros, búsqueda, selección de período,
+  edición, eliminación, aprobación, ajustes manuales ni alertas activas.
 - La Política V3 conserva el estado institucional `PROPOSED`.
 - La sincronización requiere acceso al remoto Git configurado y una identidad
   Git válida para subir cambios.

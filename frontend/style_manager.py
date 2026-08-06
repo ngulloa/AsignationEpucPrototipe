@@ -372,6 +372,11 @@ class StyleManager:
                 color: {colors["neutral_gray_700"]};
                 font-size: {sizes["body"]}px;
             }}
+            QLabel#warningIndicator[warningState="inactive"] {{
+                background: transparent;
+                color: {colors["neutral_gray_500"]};
+                font-size: {sizes["subtitle"]}px;
+            }}
             QLabel#errorLabel {{
                 background: transparent;
                 color: {colors["semantic_error"]};

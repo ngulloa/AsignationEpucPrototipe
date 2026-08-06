@@ -9,9 +9,11 @@ from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QStackedWidget, QWidget
 
 from backend.contracts import (
+    AcademicAssignmentsSummary,
     AcademicFormData,
     AcademicListingError,
     AcademicRecord,
+    AssignmentListingError,
     SubmissionResult,
 )
 from frontend.async_worker import AsyncOperation
@@ -21,6 +23,7 @@ from frontend.navigation import (
     ACADEMIC_FORM_SCREEN,
     ACADEMIC_LIST_SCREEN,
     ASSIGNMENT_FLOW_SCREEN,
+    ASSIGNMENTS_SCREEN,
     LOGIN_SCREEN,
     MENU_SCREEN,
     REGISTER_SCREEN,
@@ -31,6 +34,7 @@ from frontend.views import (
     AcademicFormView,
     AcademicsListView,
     AssignmentFlowView,
+    AssignmentsListView,
     LoginView,
     MainMenuView,
     RegisterView,
@@ -38,6 +42,7 @@ from frontend.views import (
 
 SubmissionCallback = Callable[[AcademicFormData], SubmissionResult]
 AcademicsProvider = Callable[[], Sequence[AcademicRecord]]
+AssignmentsProvider = Callable[[], Sequence[AcademicAssignmentsSummary]]
 
 
 class MainWindow(QMainWindow):
@@ -50,6 +55,7 @@ class MainWindow(QMainWindow):
         submit_callback: SubmissionCallback | None = None,
         academics: Iterable[AcademicRecord] = (),
         academics_provider: AcademicsProvider | None = None,
+        assignments_provider: AssignmentsProvider | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -57,6 +63,9 @@ class MainWindow(QMainWindow):
         self.controller = controller
         self._submit_callback = submit_callback or self.controller.submit_academic
         self._academics_provider = academics_provider or self.controller.list_academics
+        self._assignments_provider = (
+            assignments_provider or self.controller.list_assignments_by_academic
+        )
         self.academic_catalogs = self.controller.academic_catalogs()
         self.settings = settings
         self.style_manager = StyleManager(self.settings.visual)
@@ -100,6 +109,10 @@ class MainWindow(QMainWindow):
         self.assignment_flow_view = AssignmentFlowView(
             self.settings, self.style_manager, self.controller
         )
+        self.assignments_list_view = AssignmentsListView(
+            self.settings,
+            self.style_manager,
+        )
         self._views = {
             LOGIN_SCREEN: self.login_view,
             REGISTER_SCREEN: self.register_view,
@@ -107,6 +120,7 @@ class MainWindow(QMainWindow):
             ACADEMIC_LIST_SCREEN: self.academics_list_view,
             ACADEMIC_FORM_SCREEN: self.academic_form_view,
             ASSIGNMENT_FLOW_SCREEN: self.assignment_flow_view,
+            ASSIGNMENTS_SCREEN: self.assignments_list_view,
         }
         for view in self._views.values():
             self.stack.addWidget(view)
@@ -134,6 +148,7 @@ class MainWindow(QMainWindow):
         )
         self.main_menu_view.academics_requested.connect(self.show_academics_list)
         self.main_menu_view.assign_load_requested.connect(self.show_assignment_flow)
+        self.main_menu_view.assignments_requested.connect(self.show_assignments)
         self.main_menu_view.download_requested.connect(self.download_information)
         self.main_menu_view.upload_requested.connect(self.upload_information)
         self.academics_list_view.menu_requested.connect(self.show_main_menu)
@@ -145,6 +160,7 @@ class MainWindow(QMainWindow):
             self._handle_submission_success
         )
         self.assignment_flow_view.cancel_requested.connect(self.show_main_menu)
+        self.assignments_list_view.menu_requested.connect(self.show_main_menu)
         self.assignment_flow_view.saved.connect(
             lambda message: self.main_menu_view.show_sync_result(message, success=True)
         )
@@ -153,6 +169,7 @@ class MainWindow(QMainWindow):
             self.academics_list_view,
             self.academic_form_view,
             self.assignment_flow_view,
+            self.assignments_list_view,
         ):
             view.logout_requested.connect(self.logout)
 
@@ -176,6 +193,10 @@ class MainWindow(QMainWindow):
     def show_assignment_flow(self) -> None:
         self.assignment_flow_view.prepare()
         self._show_screen(ASSIGNMENT_FLOW_SCREEN)
+
+    def show_assignments(self) -> None:
+        self._reload_assignments()
+        self._show_screen(ASSIGNMENTS_SCREEN)
 
     def show_academic_edit(self, record: AcademicRecord) -> None:
         self.academic_form_view.prepare_edit(record)
@@ -220,6 +241,7 @@ class MainWindow(QMainWindow):
         self.academics_list_view.set_session("")
         self.academic_form_view.set_session("")
         self.assignment_flow_view.set_session("")
+        self.assignments_list_view.set_session("")
         self._show_screen(LOGIN_SCREEN, force_reference_size=True)
 
     def _handle_authenticated(self, username: str) -> None:
@@ -228,6 +250,7 @@ class MainWindow(QMainWindow):
         self.academics_list_view.set_session(username)
         self.academic_form_view.set_session(username)
         self.assignment_flow_view.set_session(username)
+        self.assignments_list_view.set_session(username)
         self.show_main_menu()
 
     def _handle_registration_success(self, _message: str, username: str) -> None:
@@ -262,6 +285,18 @@ class MainWindow(QMainWindow):
             self.academics_list_view.show_result(message, success=False)
             return message
         self.academics_list_view.set_academics(academics)
+        return None
+
+    def _reload_assignments(self) -> str | None:
+        self.assignments_list_view.clear_error()
+        try:
+            assignments = self._assignments_provider()
+        except AssignmentListingError:
+            message = self.settings.texts.messages["assignment_listing_error"]
+            self.assignments_list_view.set_assignments(())
+            self.assignments_list_view.show_error(message)
+            return message
+        self.assignments_list_view.set_assignments(assignments)
         return None
 
     def _handle_submission_success(self, message: str) -> None:
@@ -308,6 +343,7 @@ def build_frontend_window(
     submit_callback: SubmissionCallback | None = None,
     academics: Iterable[AcademicRecord] = (),
     academics_provider: AcademicsProvider | None = None,
+    assignments_provider: AssignmentsProvider | None = None,
 ) -> MainWindow:
     """Build, but do not show, the frontend using only injected contracts."""
     return MainWindow(
@@ -316,4 +352,5 @@ def build_frontend_window(
         submit_callback=submit_callback,
         academics=academics,
         academics_provider=academics_provider,
+        assignments_provider=assignments_provider,
     )

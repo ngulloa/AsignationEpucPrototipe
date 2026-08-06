@@ -203,15 +203,38 @@ class AssignmentService:
         )
         statuses = _indexed(status_rows, "status_id", "assignment_statuses")
 
+        for employment in employment_rows:
+            _required_reference(
+                academics,
+                employment["academic_id"],
+                "academic_employment_history.academic_id → Academic.academic_id",
+            )
+        for offering in offering_rows:
+            _required_reference(
+                courses,
+                offering["course_id"],
+                "course_offerings.course_id → Course.course_id",
+            )
+            _required_reference(
+                periods,
+                offering["period_id"],
+                "course_offerings.period_id → academic_periods.period_id",
+            )
+        for detail in detail_rows:
+            _required_reference(
+                assignments,
+                detail["assignment_id"],
+                "course_assignments.assignment_id → academic_assignments.assignment_id",
+            )
+            _required_reference(
+                offerings,
+                detail["offering_id"],
+                "course_assignments.offering_id → course_offerings.offering_id",
+            )
+
         current_academic_ids = {
             row["academic_id"] for row in employment_rows if not row["valid_to"]
         }
-        for academic_id in current_academic_ids:
-            _required_reference(
-                academics,
-                academic_id,
-                "academic_employment_history.academic_id → Academic.academic_id",
-            )
 
         authorizations_by_assignment: dict[str, list[tuple[int, dict[str, str]]]] = {}
         sequences: set[tuple[str, int]] = set()

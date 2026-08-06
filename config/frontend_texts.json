@@ -11,6 +11,7 @@
     "menu": "Sistema de asignación de carga académica",
     "academic_list": "Académicos",
     "academic_form": "Agregar académico",
+    "assignments": "Asignaciones",
     "assignment_step_1": "Asignar carga · 1. Seleccionar académico",
     "assignment_step_2": "Asignar carga · 2. Tipo de actividad",
     "assignment_step_3": "Asignar carga · 3. Asignación de curso"
@@ -74,8 +75,21 @@
     "Estado",
     "Acciones"
   ],
+  "assignment_table_headers": [
+    "Académico",
+    "RUT",
+    "Asignaciones",
+    "Puntaje total",
+    "Advertencia"
+  ],
   "messages": {
     "no_academics": "No hay académicos disponibles.",
+    "no_assignment_academics": "No hay datos de asignaciones disponibles.",
+    "no_assignments": "Sin asignaciones",
+    "assignment_academic_count_format": "Académicos: {count}",
+    "warning_inactive_tooltip": "Indicador sin evaluación en esta versión",
+    "warning_inactive_accessible_name": "Advertencia inactiva",
+    "assignment_listing_error": "No fue posible cargar las asignaciones. Inténtalo nuevamente.",
     "search_placeholder": "Buscar por nombre o RUT",
     "select_placeholder": "Seleccionar",
     "password_hint": "La contraseña debe tener entre 4 y 8 caracteres.",

@@ -453,6 +453,34 @@ class AssignmentListingTestCase(unittest.TestCase):
         with self.assertRaisesRegex(AssignmentListingError, "course_assignments"):
             self.service.list_assignments_by_academic()
 
+    def test_orphan_course_detail_raises_specific_error(self) -> None:
+        self.tables["course_assignments.csv"][0]["assignment_id"] = "missing"
+        self._write_dataset()
+        with self.assertRaisesRegex(AssignmentListingError, "assignment_id"):
+            self.service.list_assignments_by_academic()
+
+    def test_unreferenced_offering_with_missing_course_raises_specific_error(
+        self,
+    ) -> None:
+        offering = TABLE_FIELDS["course_offerings.csv"]
+        self.tables["course_offerings.csv"].append(
+            self._row(
+                offering,
+                offering_id="orphan-offering",
+                course_id="missing",
+                period_id="period-2026",
+                section_code="03",
+                nrc="30003",
+                enrollment_count="30",
+                status_code="OPEN",
+                created_at="2026-01-01T00:00:00+00:00",
+                updated_at="2026-01-01T00:00:00+00:00",
+            )
+        )
+        self._write_dataset()
+        with self.assertRaisesRegex(AssignmentListingError, "course_id"):
+            self.service.list_assignments_by_academic()
+
     def test_optional_period_filter_limits_assignments_and_total(self) -> None:
         results = self.service.list_assignments_by_academic("period-2025")
         result = next(item for item in results if item.academic_id == "academic-z")

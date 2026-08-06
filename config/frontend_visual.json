@@ -58,6 +58,10 @@
     "assignment_flow": {
       "width": 1080,
       "height": 820
+    },
+    "assignments": {
+      "width": 1200,
+      "height": 820
     }
   },
   "margins": {

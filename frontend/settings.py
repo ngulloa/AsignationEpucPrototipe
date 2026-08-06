@@ -9,6 +9,25 @@ from typing import Mapping, TypeVar
 
 SUPPORTED_SCHEMA_VERSION = 1
 _HEX_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
+_ASSIGNMENTS_DIMENSIONS = {"width": 1200, "height": 820}
+_ASSIGNMENT_TABLE_HEADERS = (
+    "Académico",
+    "RUT",
+    "Asignaciones",
+    "Puntaje total",
+    "Advertencia",
+)
+_ASSIGNMENT_SCREEN_TITLES = {"assignments": "Asignaciones"}
+_ASSIGNMENT_MESSAGES = {
+    "no_assignment_academics": "No hay datos de asignaciones disponibles.",
+    "no_assignments": "Sin asignaciones",
+    "assignment_academic_count_format": "Académicos: {count}",
+    "warning_inactive_tooltip": "Indicador sin evaluación en esta versión",
+    "warning_inactive_accessible_name": "Advertencia inactiva",
+    "assignment_listing_error": (
+        "No fue posible cargar las asignaciones. Inténtalo nuevamente."
+    ),
+}
 
 _ValueT = TypeVar("_ValueT")
 
@@ -84,6 +103,7 @@ class TextParameters:
     button_labels: Mapping[str, str]
     field_labels: Mapping[str, str]
     table_headers: tuple[str, ...]
+    assignment_table_headers: tuple[str, ...]
     messages: Mapping[str, str]
     out_of_scope_function_texts: Mapping[str, str]
 
@@ -203,6 +223,10 @@ def _parse_dimensions_mapping(
         )
         for screen in required_screens
     }
+    dimensions["assignments"] = _parse_dimensions(
+        values.get("assignments", _ASSIGNMENTS_DIMENSIONS),
+        f"{location}.assignments",
+    )
     return _immutable_mapping(dimensions)
 
 
@@ -240,6 +264,17 @@ def _parse_string_mapping(
         )
         for key, item in values.items()
     }
+    return _immutable_mapping(parsed)
+
+
+def _parse_string_mapping_with_defaults(
+    value: object,
+    location: str,
+    defaults: Mapping[str, str],
+) -> Mapping[str, str]:
+    parsed = dict(_parse_string_mapping(value, location))
+    for key, default in defaults.items():
+        parsed.setdefault(key, default)
     return _immutable_mapping(parsed)
 
 
@@ -431,9 +466,10 @@ def parse_text_parameters(values: Mapping[str, object]) -> TextParameters:
             _required(values, "headers", location),
             f"{location}.headers",
         ),
-        screen_titles=_parse_string_mapping(
+        screen_titles=_parse_string_mapping_with_defaults(
             _required(values, "screen_titles", location),
             f"{location}.screen_titles",
+            _ASSIGNMENT_SCREEN_TITLES,
         ),
         button_labels=_parse_string_mapping(
             _required(values, "button_labels", location),
@@ -447,9 +483,14 @@ def parse_text_parameters(values: Mapping[str, object]) -> TextParameters:
             _required(values, "table_headers", location),
             f"{location}.table_headers",
         ),
-        messages=_parse_string_mapping(
+        assignment_table_headers=_parse_string_list(
+            values.get("assignment_table_headers", list(_ASSIGNMENT_TABLE_HEADERS)),
+            f"{location}.assignment_table_headers",
+        ),
+        messages=_parse_string_mapping_with_defaults(
             _required(values, "messages", location),
             f"{location}.messages",
+            _ASSIGNMENT_MESSAGES,
         ),
         out_of_scope_function_texts=_parse_string_mapping(
             _required(values, "out_of_scope_function_texts", location),
